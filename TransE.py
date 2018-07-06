@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from copy import deepcopy
 
 class TransE:
@@ -93,15 +94,17 @@ def openTrain(dir,sp=','):
 	return num,list
 
 if __name__ == '__main__':
-	dirEntity="data\\people.csv"
+	dirEntity="data/people.csv"
 	entityIdNum,entityList=openDetailsAndId(dirEntity,',',1)
 	print(entityIdNum,entityList)
-	dirRelation = "data\\rel.csv"
+	dirRelation = "data/rel.csv"
 	relationIdNum, relationList = openDetailsAndId(dirRelation,',',1)
 	print(relationIdNum,relationList)
 	#dirTrain = data\\train.txt"
 	#tripleNum, tripleList = openTrain(dirTrain)
 	print("打开TransE")
+	a=[1,2,3]
+	print(random.sample(a,1)[0])
 	#transE = TransE(entityList,relationList,tripleList, margin=1, dim = 100)
 	#print("TranE初始化")
 	#transE.initialize()
