@@ -1,5 +1,5 @@
 import numpy as np
-import random
+import random#random.sample
 from copy import deepcopy
 
 class TransE:
@@ -38,6 +38,53 @@ class TransE:
 		print('关系向量初始化完成，共有%d个'%len(relationVectorList))
 		self.entityList=entityVectorList
 		self.relationList=relationVectorList
+
+	def transE(self,cI=20,batchNum=150):
+		print("start training")
+		for cycleIndex in range(cI):
+			Sbatch=self.getSample(batchNum)
+			Tbatch=[]#triplet and corrupted triplet
+			for sbatch in Sbatch:
+				tripletAndCorruptedTriplet=(sbatch,self.getCorrupted(sbatch))
+				if(tripletAndCorruptedTriplet not in Tbatch):
+					Tbatch.append(tripletAndCorruptedTriplet)
+			self.update(Tbatch)
+			if cycleIndex%100==0:
+				print("the %d th training"%cycleIndex)
+				print(self.loss)
+				'''
+				self.writeRelationVector()
+				self.writeEntilyVector()
+				'''
+				self.loss=0
+
+	def getSample(self,size):
+		return random.sample(self.tripletList,size)
+
+	def getCorrupted(self,triplet):
+		i=np.random.uniform(-1,1)
+		if i<0:
+			while True:
+				entityTemp=random.sample(self.entityList.keys(),1)[0]
+				if entityTemp!=triplet[0]:
+					break
+			corruptedTriplet=(entityTemp,triplet[1],triplet[2])
+		else:
+			while True:
+				entityTemp=random.sample(self.entityList.keys(),1)[0]
+				if entityTemp!=triplet[1]:
+					break
+			corruptedTriplet=(triplet[0],entityTemp,triplet[2])
+		return corruptedTriplet
+
+	def update(self,Tbatch):
+		copyEntityList=deepcopy(self.entityList)
+		copyRelationList=deepcopy(self.relationList)
+		for triplets in Tbatch:
+			headEntityVector=copyEntityList[triplets[0][0]]
+			tailEntityVector=copyEntityList[triplets[0][1]]
+			relationVector=copyRelationList[triplets[0][2]]
+			####
 
 
 def init(dim):
