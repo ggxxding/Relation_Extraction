@@ -84,6 +84,9 @@ class TransE:
 			headEntityVector=copyEntityList[triplets[0][0]]
 			tailEntityVector=copyEntityList[triplets[0][1]]
 			relationVector=copyRelationList[triplets[0][2]]
+			headEntityVectorCorrupted=copyEntityList[triplets[1][0]]
+			tailEntityVectorCorrupted=copyEntityList[triplets[1][1]]
+			
 			####
 
 
