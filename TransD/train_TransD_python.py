@@ -334,11 +334,11 @@ if __name__ == '__main__':
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
 
 	
-	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.01 ,margin=1, dimE = 20,dimR=20)
+	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.01 ,margin=1, dimE = 100,dimR=100)
 	print("TranE初始化")
 	transD.initialize()
 	
-	transD.transD(cI=1,batchNum=101)
+	transD.transD(cI=3,batchNum=1000)
 	'''
 	#transE.transE(15000)
 	#transE.writeRelationVector("c:\\relationVector.txt")
