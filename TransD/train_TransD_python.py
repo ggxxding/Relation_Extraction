@@ -248,6 +248,19 @@ class TransD:
 			self.entityMappingList=copyEntityMappingList
 			self.relationList=copyRelationList
 			self.relationMappingList=copyRelationMappingList
+	def writeEntityVector(self,dir):
+		print("writing entity")
+		file=open(dir,'w')
+		for entity in self.entityList.keys():
+			file.write(entity+'\t')
+			file.write(str(self.entityList[entity].tolist()))
+			file.write('\n')
+		file.close()
+	def writeRelationVector(self,dir):
+		file=open(dir,'w')
+		for relation in self.relationList.keys():
+			file.write(relation+'\t')
+			
 
 def init(dim):
 	'''
@@ -281,7 +294,7 @@ def norm(list1):
 	'''
 	归一化
 	'''
-	list1=np.array(list1,dtype='float32')
+	list1=np.array(list1,dtype='float32')##
 	var=np.linalg.norm(list1)
 
 	#norm([3,4])=5
