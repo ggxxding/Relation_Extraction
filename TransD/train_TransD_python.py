@@ -54,35 +54,47 @@ class TransD:
 
 	def initialize(self):
 		entityVectorList={}
+		entityMappingList={}
 		relationVectorList={}
+		relationMappingList={}
 
 		for entity in self.entityList.values():
 			n=0
 			entityVector=[]
+			entityMVector=[]
 			while n<self.dimE:
 				ram=init(self.dimE)
 				entityVector.append(ram)
+				ram=init(self.dimE)
+				entityMVector.append(ram)
 				n+=1
 			#归一化 并且类型为np.array
 			entityVector=norm(entityVector)
 			entityVectorList[entity]=entityVector
+			entityMVector=norm(entityMVector)
+			entityMappingList[entity]=entityMVector
 
 		print('实体向量初始化完成，共有%d个'%len(entityVectorList))
 		for relation in self.relationList.values():
 			n=0
 			relationVector=[]
+			relationMVector=[]
 			while n<self.dimR:
 				ram=init(self.dimR)
 				relationVector.append(ram)
+				ram=init(self.dimR)
+				relationMVector.append(ram)
 				n+=1
 			relationVector=norm(relationVector)
 			relationVectorList[relation]=relationVector
+			relationMVector=norm(relationMVector)
+			relationMappingList[relation]=relationMVector
 
 		print('关系向量初始化完成，共有%d个'%len(relationVectorList))
 		self.entityList=entityVectorList
-		self.entityMappingList=entityVectorList
+		self.entityMappingList=entityMappingList
 		self.relationList=relationVectorList
-		self.relationMappingList=relationVectorList
+		self.relationMappingList=relationMappingList
 
 
 	def transD(self,cI=20,batchNum=150):
@@ -166,9 +178,8 @@ class TransD:
 			distTriplet=distanceTransD(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)
 			distCorruptedTriplet=distanceTransD(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)
 			eg=self.margin+distTriplet-distCorruptedTriplet
-			print(eg)
-			self.loss=eg
 			if eg>0:
+				self.loss+=eg
 				tempPosH=[]
 				for i in range(self.dimE):
 					temp=2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*headMappingVectorBefore[i])).sum()
@@ -252,14 +263,19 @@ class TransD:
 		print("writing entity")
 		file=open(dir,'w')
 		for entity in self.entityList.keys():
-			file.write(entity+'\t')
-			file.write(str(self.entityList[entity].tolist()))
+			file.write(str(entity)+'\t')
+			file.write(str(self.entityList[entity].tolist())+'\t')
+			file.write(str(self.entityMappingList[entity].tolist()))
 			file.write('\n')
 		file.close()
 	def writeRelationVector(self,dir):
 		file=open(dir,'w')
 		for relation in self.relationList.keys():
-			file.write(relation+'\t')
+			file.write(str(relation)+'\t')
+			file.write(str(self.relationList[relation].tolist())+'\t')
+			file.write(str(self.relationMappingList[relation].tolist()))
+			file.write('\n')
+		file.close()
 			
 
 def init(dim):
@@ -294,7 +310,10 @@ def norm(list1):
 	'''
 	归一化
 	'''
-	list1=np.array(list1,dtype='float32')##
+	print(type(list1))
+	if type(list1)==list:
+		list1=np.array(list1,dtype='float64')
+
 	var=np.linalg.norm(list1)
 
 	#norm([3,4])=5
@@ -336,22 +355,24 @@ if __name__ == '__main__':
 	#读取数据，生成字典{'实体名':'index'}
 
 
-	dirEntity="../data/WN18/entity2id.txt"
+	dirEntity="../data/WN182/entity2id.txt"
 	entityNum,entityDict=openDetailsAndId(dirEntity,'\t')
 	
-	dirRelation = "../data/WN18/relation2id.txt"
+	dirRelation = "../data/WN182/relation2id.txt"
 	relationNum, relationDict = openDetailsAndId(dirRelation,'\t')
 
-	dirTrain = '../data/WN18/test.txt'
+	dirTrain = '../data/WN182/ttt.txt'
 	print("打开TransD")
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
 
 	
-	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.01 ,margin=1, dimE = 100,dimR=100)
+	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.1 ,margin=1, dimE = 10,dimR=10)
 	print("TranE初始化")
 	transD.initialize()
 	
-	transD.transD(cI=3,batchNum=1000)
+	transD.transD(cI=3,batchNum=100)
+	transD.writeEntityVector('../data/WN182/entityVector.txt')
+	transD.writeRelationVector('../data/WN182/relationVector.txt')
 	'''
 	#transE.transE(15000)
 	#transE.writeRelationVector("c:\\relationVector.txt")
