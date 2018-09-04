@@ -92,15 +92,13 @@ def readVectors(dir,sp='\t'):
 
 			vector1=np.array(vector1,dtype=dType)
 			vector2=np.array(vector2,dtype=dType)
-			dict[line[0]]=[vector1,vector2]
+			dict[int(line[0])]=[vector1,vector2]
 	return dict
 
 
 
 if __name__ == '__main__':
 	#读取数据，生成字典{'实体名':'index'}
-
-
 	dirEntity="../data/WN182/entity2id.txt"
 	entityNum,entityDict=openDetailsAndId(dirEntity,'\t')
 	
@@ -113,7 +111,41 @@ if __name__ == '__main__':
 	dirTrain = '../data/WN182/ttt.txt'
 	print("打开TransD")
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
-
+	'''#bern
+	relationAttr={}#{int(index):[hpt,tph]}
+	temp=[0,0]
+	numH=0
+	numT=0
+	flagH=0
+	flagT=0
+	for r in relationVectorDict:
+		for e in entityVectorDict:
+			for triplet in tripletList:
+				if (e,r)==(triplet[0],triplet[2]):
+					temp[0]+=1
+					flagH=1
+				if (e,r)==(triplet[1],triplet[2]):
+					temp[1]+=1
+					flagT=1
+			if flagH==1:
+				numH+=1
+				flagH=0
+			if flagT==1:
+				numT+=1
+				flagT=0
+		if numH!=0:
+			temp[0]=temp[0]/numH
+		if numT!=0:
+			temp[1]=temp[1]/numT
+		print(temp,numH,numT)
+		relationAttr[r]=temp
+		temp=[0,0]
+		numH=0
+		numT=0
+	print(relationAttr)
+	#bern#'''
+	for i in tripletList:
+		print(relationVectorDict[i[2]])
 
 
 	'''

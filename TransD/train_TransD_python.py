@@ -365,15 +365,15 @@ if __name__ == '__main__':
 	dirTrain = '../data/WN182/ttt.txt'
 	print("打开TransD")
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
-
-	
+	print(type(tripletList))
+	'''
 	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.1 ,margin=1, dimE = 10,dimR=10)
 	print("TranE初始化")
 	transD.initialize()
 	
 	transD.transD(cI=3,batchNum=100)
 	transD.writeEntityVector('../data/WN182/entityVector.txt')
-	transD.writeRelationVector('../data/WN182/relationVector.txt')
+	transD.writeRelationVector('../data/WN182/relationVector.txt')'''
 	'''
 	#transE.transE(15000)
 	#transE.writeRelationVector("c:\\relationVector.txt")
