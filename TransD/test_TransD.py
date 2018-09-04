@@ -144,8 +144,40 @@ if __name__ == '__main__':
 		numT=0
 	print(relationAttr)
 	#bern#'''
+	#hits@10 and mean rank
+
+	rankList=[]
+	hitsTen=[]
 	for i in tripletList:
-		print(relationVectorDict[i[2]])
+		distList1=[]
+		distList2=[]
+		dist=distanceTransD(entityVectorDict[i[0]][0],entityVectorDict[i[0]][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[i[1]][0],entityVectorDict[i[1]][1])
+		distList1.append(dist)
+		distList2.append(dist)
+		for e in entityVectorDict:
+			if i!=(e,i[1],i[2]):
+				distCorrupted=distanceTransD(entityVectorDict[e][0],entityVectorDict[e][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[i[1]][0],entityVectorDict[i[1]][1])
+				distList1.append(distCorrupted)
+			if i!=(i[0],e,i[2]):
+				distCorrupted=distanceTransD(entityVectorDict[i[0]][0],entityVectorDict[i[0]][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[e][0],entityVectorDict[e][1])
+				distList2.append(distCorrupted)
+		distList1.sort()
+		distList2.sort()
+		rank1=distList1.index(dist)
+		rank2=distList2.index(dist)
+		rankList.append(rank1)
+		rankList.append(rank2)
+		if rank1<=10:
+			hitsTen.append(1)
+		else:
+			hitsTen.append(0)
+		if rank2<=10:
+			hitsTen.append(1)
+		else:
+			hitsTen.append(0)
+	meanRank=np.array(rankList).mean()
+	hitsTen=np.array(hitsTen).sum()/len(histTen)
+
 
 
 	'''
