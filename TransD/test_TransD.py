@@ -3,7 +3,7 @@ import random#random.sample
 import math
 from copy import deepcopy
 import csv
-
+dType='float64'
 def init(dim):
 	'''
 	初始化向量
@@ -62,6 +62,7 @@ def openTrain(dir,sp=','):
 	with open(dir) as file:
 		lines=file.readlines()
 		for line in lines:
+
 			triple=line.strip().split(sp)
 			if(len(triple)<3):
 				continue
@@ -71,6 +72,30 @@ def openTrain(dir,sp=','):
 			list.append(tuple(triple))
 			num+=1
 	return num,list
+
+def readVectors(dir,sp='\t'):
+	num=0
+	dict={}
+	with open(dir) as file:
+		lines=file.readlines()
+		for line in lines:
+			line=line.replace('[','').replace(']','')
+			line=line.strip().split(sp)
+
+			vector1=line[1].split(',')
+			for i in range(len(vector1)):
+				vector1[i]=float(vector1[i])
+
+			vector2=line[2].split(',')
+			for i in range(len(vector2)):
+				vector2[i]=float(vector2[i])
+
+			vector1=np.array(vector1,dtype=dType)
+			vector2=np.array(vector2,dtype=dType)
+			dict[line[0]]=[vector1,vector2]
+	return dict
+
+
 
 if __name__ == '__main__':
 	#读取数据，生成字典{'实体名':'index'}
@@ -82,11 +107,15 @@ if __name__ == '__main__':
 	dirRelation = "../data/WN182/relation2id.txt"
 	relationNum, relationDict = openDetailsAndId(dirRelation,'\t')
 
+	relationVectorDict=readVectors("../data/WN182/relationVector.txt")
+	entityVectorDict=readVectors("../data/WN182/entityVector.txt")
+
 	dirTrain = '../data/WN182/ttt.txt'
 	print("打开TransD")
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
 
-	print(tripletList)
+
+
 	'''
 	#transE.transE(15000)
 	#transE.writeRelationVector("c:\\relationVector.txt")

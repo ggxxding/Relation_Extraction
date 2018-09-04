@@ -3,6 +3,7 @@ import random#random.sample
 import math
 from copy import deepcopy
 import csv
+dType='float64'
 '''
 dim=10
 entity_Dict={}
@@ -182,54 +183,54 @@ class TransD:
 				self.loss+=eg
 				tempPosH=[]
 				for i in range(self.dimE):
-					temp=2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*headMappingVectorBefore[i])).sum()
+					temp=2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*headMappingVectorBefore[i]+1)).sum()
 					tempPosH.append(temp)
-				tempPosH=np.array(tempPosH).reshape(-1,1)
+				tempPosH=np.array(tempPosH,dtype=dType).reshape(-1,1)#test
 
 				tempPosHP=[]
 				for i in range(self.dimE):
 					temp=2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*headVectorBefore[i])).sum()
 					tempPosHP.append(temp)
-				tempPosHP=np.array(tempPosHP).reshape(-1,1)
+				tempPosHP=np.array(tempPosHP,dtype=dType).reshape(-1,1)
 
 				tempR=2*distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)
 				tempRP=2*distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(np.dot(headMappingVectorBefore.T,headVectorBefore)-np.dot(tailMappingVectorBefore.T,tailVectorBefore))
 				tempPosT=[]
 				for i in range(self.dimE):
-					temp=-2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*tailMappingVectorBefore[i])).sum()
+					temp=-2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*tailMappingVectorBefore[i]+1)).sum()
 					tempPosT.append(temp)
-				tempPosT=np.array(tempPosT).reshape(-1,1)
+				tempPosT=np.array(tempPosT,dtype=dType).reshape(-1,1)
 
 				tempPosTP=[]
 				for i in range(self.dimE):
 					temp=-2*(distanceTransDL1(headVectorBefore,headMappingVectorBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorBefore,tailMappingVectorBefore)*(relationMappingVectorBefore*tailVectorBefore[i])).sum()
 					tempPosTP.append(temp)
-				tempPosTP=np.array(tempPosTP).reshape(-1,1)
+				tempPosTP=np.array(tempPosTP,dtype=dType).reshape(-1,1)
 
 
 				tempNegH=[]
 				for i in range(self.dimE):
-					temp=-2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*headMappingVectorCorruptedBefore[i])).sum()
+					temp=-2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*headMappingVectorCorruptedBefore[i]+1)).sum()
 					tempNegH.append(temp)
-				tempNegH=np.array(tempNegH).reshape(-1,1)
+				tempNegH=np.array(tempNegH,dtype=dType).reshape(-1,1)
 
 				tempNegHP=[]
 				for i in range(self.dimE):
 					temp=-2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*headVectorCorruptedBefore[i])).sum()
 					tempNegHP.append(temp)
-				tempNegHP=np.array(tempNegHP).reshape(-1,1)
+				tempNegHP=np.array(tempNegHP,dtype=dType).reshape(-1,1)
 
 				tempNegT=[]
 				for i in range(self.dimE):
-					temp=2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*tailMappingVectorCorruptedBefore[i])).sum()
+					temp=2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*tailMappingVectorCorruptedBefore[i]+1)).sum()
 					tempNegT.append(temp)
-				tempNegT=np.array(tempNegT).reshape(-1,1)
+				tempNegT=np.array(tempNegT,dtype=dType).reshape(-1,1)
 
 				tempNegTP=[]
 				for i in range(self.dimE):
 					temp=2*(distanceTransDL1(headVectorCorruptedBefore,headMappingVectorCorruptedBefore,relationVectorBefore,relationMappingVectorBefore,tailVectorCorruptedBefore,tailMappingVectorCorruptedBefore)*(relationMappingVectorBefore*tailVectorCorruptedBefore[i])).sum()
 					tempNegTP.append(temp)
-				tempNegTP=np.array(tempNegTP).reshape(-1,1)
+				tempNegTP=np.array(tempNegTP,dtype=dType).reshape(-1,1)
 
 				headVector=headVector-self.learningRate*tempPosH
 				headMappingVector=headMappingVector-self.learningRate*tempPosHP
@@ -296,14 +297,14 @@ def distanceL2(h,l,t):
 def distanceTransD(h,hp,r,rp,t,tp):
 	hm=np.dot(np.dot(rp,hp.T),h)
 	tm=np.dot(np.dot(rp,tp.T),t)
-	s=hm-tm+r
+	s=hm-tm+h+r-t
 	dist=(s*s).sum()
 	return dist
 
 def distanceTransDL1(h,hp,r,rp,t,tp):
 	hm=np.dot(np.dot(rp,hp.T),h)
 	tm=np.dot(np.dot(rp,tp.T),t)
-	s=norm(hm)-norm(tm)+norm(r)
+	s=hm-tm+h+r-t
 	return s
 
 def norm(list1):
@@ -312,7 +313,7 @@ def norm(list1):
 	'''
 	print(type(list1))
 	if type(list1)==list:
-		list1=np.array(list1,dtype='float64')
+		list1=np.array(list1,dtype=dType)
 
 	var=np.linalg.norm(list1)
 
