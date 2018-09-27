@@ -176,7 +176,8 @@ if __name__ == '__main__':
 		else:
 			hitsTen.append(0)
 	meanRank=np.array(rankList).mean()
-	hitsTen=np.array(hitsTen).sum()/len(histTen)
+	hitsTen=np.array(hitsTen).sum()/len(hitsTen)
+	print(meanRank,hitsTen)
 
 
 

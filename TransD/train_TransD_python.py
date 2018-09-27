@@ -3,7 +3,7 @@ import random#random.sample
 import math
 from copy import deepcopy
 import csv
-dType='float64'
+dType='float32'
 '''
 dim=10
 entity_Dict={}
@@ -244,17 +244,55 @@ class TransD:
 				tailVectorCorrupted=tailVectorCorrupted-self.learningRate*tempNegT
 				tailMappingVectorCorrupted=tailMappingVectorCorrupted-self.learningRate*tempNegTP
 
-				copyEntityList[triplets[0][0]]=norm(headVector)
-				copyEntityMappingList[triplets[0][0]]=norm(headMappingVector)
-				copyEntityList[triplets[0][1]]=norm(tailVector)
-				copyEntityMappingList[triplets[0][1]]=norm(tailMappingVector)
-				copyRelationList[triplets[0][2]]=norm(relationVector)
-				copyRelationMappingList[triplets[0][2]]=norm(relationMappingVector)
+				if(np.linalg.norm(headVector)>1.0 or np.linalg.norm(headVector)<0.1):
+					copyEntityList[triplets[0][0]]=norm(headVector)
+				else:
+					copyEntityList[triplets[0][0]]=headVector
 
-				copyEntityList[triplets[1][0]]=norm(headVectorCorrupted)
-				copyEntityMappingList[triplets[1][0]]=norm(headMappingVectorCorrupted)
-				copyEntityList[triplets[1][1]]=norm(tailVectorCorrupted)
-				copyEntityMappingList[triplets[1][1]]=norm(tailMappingVectorCorrupted)
+				if(np.linalg.norm(headMappingVector)>1.0 or np.linalg.norm(headMappingVector)<0.1):
+					copyEntityMappingList[triplets[0][0]]=norm(headMappingVector)
+				else:
+					copyEntityMappingList[triplets[0][0]]=headMappingVector
+
+				if(np.linalg.norm(tailVector)>1.0 or np.linalg.norm(tailVector)<0.1):
+					copyEntityList[triplets[0][1]]=norm(tailVector)
+				else:
+					copyEntityList[triplets[0][1]]=tailVector
+
+				if(np.linalg.norm(tailMappingVector)>1.0 or np.linalg.norm(tailMappingVector)<0.1):
+					copyEntityMappingList[triplets[0][1]]=norm(tailMappingVector)
+				else:
+					copyEntityMappingList[triplets[0][1]]=tailMappingVector
+
+				if(np.linalg.norm(relationVector)>1.0 or np.linalg.norm(relationVector)<0.1):
+					copyRelationList[triplets[0][2]]=norm(relationVector)
+				else:
+					copyRelationList[triplets[0][2]]=relationVector
+
+				if(np.linalg.norm(relationMappingVector)>1.0 or np.linalg.norm(relationMappingVector)<0.1):
+					copyRelationMappingList[triplets[0][2]]=norm(relationMappingVector)
+				else:
+					copyRelationMappingList[triplets[0][2]]=relationMappingVector
+
+				if(np.linalg.norm(headVectorCorrupted)>1.0 or np.linalg.norm(headVectorCorrupted)<0.1):
+					copyEntityList[triplets[1][0]]=norm(headVectorCorrupted)
+				else:
+					copyEntityList[triplets[1][0]]=headVectorCorrupted
+
+				if(np.linalg.norm(headMappingVectorCorrupted)>1.0 or np.linalg.norm(headMappingVectorCorrupted)<0.1):
+					copyEntityMappingList[triplets[1][0]]=norm(headMappingVectorCorrupted)
+				else:
+					copyEntityMappingList[triplets[1][0]]=headMappingVectorCorrupted
+
+				if(np.linalg.norm(tailVectorCorrupted)>1.0 or np.linalg.norm(tailVectorCorrupted)<0.1):
+					copyEntityList[triplets[1][1]]=norm(tailVectorCorrupted)
+				else:
+					copyEntityList[triplets[1][1]]=tailVectorCorrupted
+
+				if(np.linalg.norm(tailMappingVectorCorrupted)>1.0 or np.linalg.norm(tailMappingVectorCorrupted)<0.1):
+					copyEntityMappingList[triplets[1][1]]=norm(tailMappingVectorCorrupted)
+				else:
+					copyEntityMappingList[triplets[1][1]]=tailMappingVectorCorrupted
 
 			self.entityList=copyEntityList
 			self.entityMappingList=copyEntityMappingList
@@ -283,8 +321,8 @@ def init(dim):
 	'''
 	初始化向量
 	'''
-
-	return np.random.uniform(-1,1)
+	bound=6/math.sqrt(dim)
+	return np.random.uniform(-bound,bound)
 
 
 
@@ -311,7 +349,7 @@ def norm(list1):
 	'''
 	归一化
 	'''
-	print(type(list1))
+
 	if type(list1)==list:
 		list1=np.array(list1,dtype=dType)
 
@@ -361,19 +399,20 @@ if __name__ == '__main__':
 	
 	dirRelation = "../data/WN182/relation2id.txt"
 	relationNum, relationDict = openDetailsAndId(dirRelation,'\t')
-
+	print(entityNum,relationNum)
 	dirTrain = '../data/WN182/ttt.txt'
 	print("打开TransD")
 	tripleNum, tripletList = openTrain(dirTrain,'\t')
-	print(type(tripletList))
-	'''
-	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.1 ,margin=1, dimE = 10,dimR=10)
+	print(tripleNum)
+	
+	transD = TransD(entityDict,relationDict,tripletList,learningRate=0.01 ,margin=1, dimE = 20,dimR=20)
 	print("TranE初始化")
 	transD.initialize()
 	
-	transD.transD(cI=3,batchNum=100)
+	transD.transD(cI=200,batchNum=100)
 	transD.writeEntityVector('../data/WN182/entityVector.txt')
-	transD.writeRelationVector('../data/WN182/relationVector.txt')'''
+	transD.writeRelationVector('../data/WN182/relationVector.txt')
+
 	'''
 	#transE.transE(15000)
 	#transE.writeRelationVector("c:\\relationVector.txt")
