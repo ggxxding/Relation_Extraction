@@ -1,188 +1,199 @@
+import tensorflow as tf
 import numpy as np
-import random#random.sample
-import math
-from copy import deepcopy
 import csv
-dType='float64'
-def init(dim):
-	'''
-	初始化向量
-	'''
+import math
+import random
 
-	return np.random.uniform(-1,1)
+embed_dim=10
+n_batch=1#
+num_epoch=1
 
+test_path='../data/WN182/ttt.txt'
+checkpoint_dir='../data/WN182/saver/'
+model_name='modeld'
+entity_id_map={}
+id_entity_map={}
+relation_id_map={}
+id_relation_map={}
+csv_file=csv.reader(open('../data/WN182/entity2id.txt'))
+n_entity=0
+for lines in csv_file:
+	line=lines[0].split('\t')
+	n_entity+=1
+	entity_id_map[line[0]]=line[1]
+	#id_entity_map[line[1]]=line[0]
 
-def distanceL2(h,l,t):
-	s=h+l-t
-	sum=(s*s).sum()
-	return sum
+csv_file=csv.reader(open('../data/WN182/relation2id.txt'))
+n_relation=0
+for lines in csv_file:
+	line=lines[0].split('\t')
+	n_relation+=1
+	relation_id_map[line[0]]=line[1]
+	#id_relation_map[line[1]]=line[0]
+print("entity number:%d,relation number:%d"%(n_entity,n_relation))
+#print(entity_id_map)
 
-def distanceTransD(h,hp,r,rp,t,tp):
-	hm=np.dot(np.dot(rp,hp.T),h)
-	tm=np.dot(np.dot(rp,tp.T),t)
-	s=hm-tm+r
-	dist=(s*s).sum()
-	return dist
+def load_triple(file_path):
+	with open(file_path,'r',encoding='utf-8') as f_triple:
+		return np.asarray([[entity_id_map[x.strip().split('\t')[0]],
+			entity_id_map[x.strip().split('\t')[1]],
+			relation_id_map[x.strip().split('\t')[2]]] for x in f_triple.readlines()],
+			dtype=np.int32)
+test_triple=load_triple(test_path)
 
-def distanceTransDL1(h,hp,r,rp,t,tp):
-	hm=np.dot(np.dot(rp,hp.T),h)
-	tm=np.dot(np.dot(rp,tp.T),t)
-	s=norm(hm)-norm(tm)+norm(r)
-	return s
-
-def norm(list1):
-	'''
-	归一化
-	'''
-	list1=np.array(list1,dtype='float32')##
-	var=np.linalg.norm(list1)
-
-	#norm([3,4])=5
-	i=0
-	while i<len(list1):
-		list1[i]=list1[i]/var
-		i=i+1
-	return np.array(list1).reshape(-1,1)
-#返回行数和指定
-
-def openDetailsAndId(dir,sp=','):
-	idNum=0
-	Dict={}
-	with open(dir) as file:
-		lines=file.readlines()
-		for line in lines:
-			DetailsAndId=line.strip().split(sp)
-			Dict[DetailsAndId[0]]=int(DetailsAndId[1])
-			idNum+=1
-	return idNum,Dict
-#返回训练样本数和列表
-def openTrain(dir,sp=','):
-	num=0
-	list=[]
-	with open(dir) as file:
-		lines=file.readlines()
-		for line in lines:
-
-			triple=line.strip().split(sp)
-			if(len(triple)<3):
-				continue
-			triple[0]=entityDict[triple[0]]
-			triple[1]=entityDict[triple[1]]
-			triple[2]=relationDict[triple[2]]
-			list.append(tuple(triple))
-			num+=1
-	return num,list
-
-def readVectors(dir,sp='\t'):
-	num=0
-	dict={}
-	with open(dir) as file:
-		lines=file.readlines()
-		for line in lines:
-			line=line.replace('[','').replace(']','')
-			line=line.strip().split(sp)
-
-			vector1=line[1].split(',')
-			for i in range(len(vector1)):
-				vector1[i]=float(vector1[i])
-
-			vector2=line[2].split(',')
-			for i in range(len(vector2)):
-				vector2[i]=float(vector2[i])
-
-			vector1=np.array(vector1,dtype=dType)
-			vector2=np.array(vector2,dtype=dType)
-			dict[int(line[0])]=[vector1,vector2]
-	return dict
+#tf.placeholder()
+trainable=[] #可训练参数列表
 
 
+bound = 6 / math.sqrt(embed_dim)
+ent_embedding = tf.get_variable("ent_embedding", [n_entity, embed_dim],
+                                                   initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=345))
+ent_projecting=tf.get_variable("ent_projecting", [n_entity, embed_dim],
+                                                   initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=347))
+trainable.append(ent_embedding)
+trainable.append(ent_projecting)
 
-if __name__ == '__main__':
-	#读取数据，生成字典{'实体名':'index'}
-	dirEntity="../data/WN182/entity2id.txt"
-	entityNum,entityDict=openDetailsAndId(dirEntity,'\t')
-	
-	dirRelation = "../data/WN182/relation2id.txt"
-	relationNum, relationDict = openDetailsAndId(dirRelation,'\t')
+rel_embedding = tf.get_variable("rel_embedding", [n_relation, embed_dim],
+                                                   initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=346))
+rel_projecting=tf.get_variable("rel_projecting", [n_relation, embed_dim],
+                                                   initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=348))
+trainable.append(rel_embedding)
+trainable.append(rel_projecting)
 
-	relationVectorDict=readVectors("../data/WN182/relationVector.txt")
-	entityVectorDict=readVectors("../data/WN182/entityVector.txt")
 
-	dirTrain = '../data/WN182/ttt.txt'
-	print("打开TransD")
-	tripleNum, tripletList = openTrain(dirTrain,'\t')
-	'''#bern
-	relationAttr={}#{int(index):[hpt,tph]}
-	temp=[0,0]
-	numH=0
-	numT=0
-	flagH=0
-	flagT=0
-	for r in relationVectorDict:
-		for e in entityVectorDict:
-			for triplet in tripletList:
-				if (e,r)==(triplet[0],triplet[2]):
-					temp[0]+=1
-					flagH=1
-				if (e,r)==(triplet[1],triplet[2]):
-					temp[1]+=1
-					flagT=1
-			if flagH==1:
-				numH+=1
-				flagH=0
-			if flagT==1:
-				numT+=1
-				flagT=0
-		if numH!=0:
-			temp[0]=temp[0]/numH
-		if numT!=0:
-			temp[1]=temp[1]/numT
-		print(temp,numH,numT)
-		relationAttr[r]=temp
-		temp=[0,0]
-		numH=0
-		numT=0
-	print(relationAttr)
-	#bern#'''
-	#hits@10 and mean rank
+train_input_pos=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
+input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
+input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1])
+tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
+input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
+mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
+h_pos=tf.matmul(mrh_pos,input_h_pos)
+t_pos=tf.matmul(mrt_pos,input_t_pos)
 
-	rankList=[]
-	hitsTen=[]
-	for i in tripletList:
-		distList1=[]
-		distList2=[]
-		dist=distanceTransD(entityVectorDict[i[0]][0],entityVectorDict[i[0]][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[i[1]][0],entityVectorDict[i[1]][1])
-		distList1.append(dist)
-		distList2.append(dist)
-		for e in entityVectorDict:
-			if i!=(e,i[1],i[2]):
-				distCorrupted=distanceTransD(entityVectorDict[e][0],entityVectorDict[e][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[i[1]][0],entityVectorDict[i[1]][1])
-				distList1.append(distCorrupted)
-			if i!=(i[0],e,i[2]):
-				distCorrupted=distanceTransD(entityVectorDict[i[0]][0],entityVectorDict[i[0]][1],relationVectorDict[i[2]][0],relationVectorDict[i[2]][1],entityVectorDict[e][0],entityVectorDict[e][1])
-				distList2.append(distCorrupted)
-		distList1.sort()
-		distList2.sort()
-		rank1=distList1.index(dist)
-		rank2=distList2.index(dist)
-		rankList.append(rank1)
-		rankList.append(rank2)
-		if rank1<=10:
-			hitsTen.append(1)
-		else:
-			hitsTen.append(0)
-		if rank2<=10:
-			hitsTen.append(1)
-		else:
-			hitsTen.append(0)
-	meanRank=np.array(rankList).mean()
-	hitsTen=np.array(hitsTen).sum()/len(hitsTen)
-	print(meanRank,hitsTen)
+score_hrt_pos=tf.square(tf.norm(h_pos+input_r_pos-t_pos,axis=1))
+
+
+'''train_input_neg=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
+input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
+input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
+tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
+input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
+rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
+mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
+mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
+h_neg=tf.matmul(mrh_neg,input_h_neg)
+t_neg=tf.matmul(mrt_neg,input_t_neg)
+score_hrt_neg=tf.square(tf.norm(h_neg+input_r_neg-t_neg,axis=1))'''
+'''regularizer_loss=tf.reduce_sum(ent_embedding)+tf.reduce_sum(ent_projecting) \
++tf.reduce_sum(rel_embedding)+tf.reduce_sum(rel_projecting)'''
+
+
+saver=tf.train.Saver()
+
+
+#filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
+filenames=['../data/WN182/ttt.txt']
+filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
+#num_epochs 迭代轮数，每个数据最多出现多少次
+reader=tf.TextLineReader()
+key,value=reader.read(filename_queue)
+record_defaults=[['NULL'],['NULL'],['NULL']]
+col1,col2,col3=tf.decode_csv(value,record_defaults=record_defaults,field_delim="\t")
+#features=tf.stack([col1,col2])
+col1_batch,col2_batch,col3_batch=tf.train.batch([col1,col2,col3],batch_size=n_batch)
+
+
+# 启动图 (graph)
+init=tf.global_variables_initializer()
+init_local_op=tf.initialize_local_variables()
+test_triple=test_triple.tolist()
+with tf.Session() as sess:
+	n_iter=0
+	n_loading=0
+	sess.run(init)
+	sess.run(init_local_op)
+
+
+	ckpt=tf.train.get_checkpoint_state(checkpoint_dir)
+	if ckpt and ckpt.model_checkpoint_path:
+		print("success! %s."% ckpt.model_checkpoint_path)
+		saver.restore(sess,ckpt.model_checkpoint_path)
+	else:
+		print('fail to restore')
+
+	coord=tf.train.Coordinator()
+	threads=tf.train.start_queue_runners(coord=coord)
+	rank_list=[]
+	try:
+		while not coord.should_stop():
+			n_iter+=1
+			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
+			input_pos=[]
+			for idx in range(len(c1)):
+				input_pos.append([entity_id_map[bytes.decode(c1[idx])],entity_id_map[bytes.decode(c2[idx])], \
+					relation_id_map[bytes.decode(c3[idx])]])
+			input_pos=np.asarray(input_pos,dtype=np.int32)
+			score_list=[]
+			#print(input_pos,input_pos.shape[0])
+
+			scores=sess.run(score_hrt_pos,{train_input_pos:input_pos})
+
+			score_list.append(scores[0][0])
+			temp=input_pos.tolist()#temp=[[]]
+
+			for idx in range(len(entity_id_map)):
+				if (idx!=temp[0][0]) and ([idx,temp[0][1],temp[0][2]] not in test_triple):
+					scores_corrupted=sess.run(score_hrt_pos,{train_input_pos:np.asarray([[idx,temp[0][1],temp[0][2]]],dtype=np.int32)})
+					score_list.append(scores_corrupted[0][0])
+
+			#corrupted_input=np.array(input_neg,dtype=np.int32)
 
 
 
-	'''
-	#transE.transE(15000)
-	#transE.writeRelationVector("c:\\relationVector.txt")
-	#transE.writeEntilyVector("c:\\entityVector.txt")
-	'''
+
+			n_loading+=1
+			score_list.sort()
+			rank=score_list.index(scores[0][0])
+			rank_list.append(rank)
+
+			print(n_loading)
+			print(score_list.index(scores[0][0]))
+
+
+			'''if n_iter%100==0:
+				saved_path=saver.save(sess,checkpoint_dir+model_name)'''
+
+	except tf.errors.OutOfRangeError:
+		print('epochs complete!')
+	finally:
+		coord.request_stop()
+	coord.join(threads)
+	coord.request_stop()
+	coord.join(threads)
+	hits10=0
+	for i in rank_list:
+		if i<=10:
+			hits10+=1
+	hits10=hits10/len(rank_list)
+	rank_list=np.asarray(rank_list,dtype=np.int32)
+	mean_rank=np.sum(rank_list)/rank_list.shape[0]
+
+
+	#saver.save(sess,checkpoint_dir+model_name)
+
+
+# 拟合平面
+'''for step in range(0, 201):
+    sess.run(train)
+    if step % 20 == 0:
+        print(step, W.eval(sess), sess.run(b))'''
+
+# 得到最佳拟合结果 W: [[0.100  0.200]], b: [0.300]

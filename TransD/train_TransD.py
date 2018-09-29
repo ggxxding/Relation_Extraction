@@ -4,9 +4,11 @@ import csv
 import math
 import random
 embed_dim=10
-n_batch=3
-margin=1.
+n_batch=150
+margin=2.
 lr=0.0001
+regularizer_weight=1e-5
+num_epoch=1
 train_path='../data/WN182/ttt.txt'
 checkpoint_dir='../data/WN182/saver/'
 model_name='modeld'
@@ -66,17 +68,17 @@ trainable.append(rel_projecting)
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
 
-input_h_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1]),dim=1)#(n_batch,1) (n_batch,dim)
+input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
 
-hp_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1]),dim=1)
+hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
 
-input_t_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1]),dim=1)
+input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 
-tp_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1]),dim=1)
+tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 
-input_r_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1]),dim=1)
+input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 
-rp_pos=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1]),dim=1)
+rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 
 mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
 mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
@@ -89,17 +91,17 @@ score_hrt_pos=tf.square(tf.norm(h_pos+input_r_pos-t_pos,axis=1))
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
 
-input_h_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1]),dim=1)#(n_batch,1) (n_batch,dim)
+input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
 
-hp_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1]),dim=1)
+hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
 
-input_t_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1]),dim=1)
+input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
 
-tp_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1]),dim=1)
+tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
 
-input_r_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1]),dim=1)
+input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
 
-rp_neg=tf.nn.l2_normalize(tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1]),dim=1)
+rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
 
 mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
 mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
@@ -109,9 +111,10 @@ t_neg=tf.matmul(mrt_neg,input_t_neg)
 
 score_hrt_neg=tf.square(tf.norm(h_neg+input_r_neg-t_neg,axis=1))
 
+regularizer_loss=tf.reduce_sum(ent_embedding)+tf.reduce_sum(ent_projecting) \
++tf.reduce_sum(rel_embedding)+tf.reduce_sum(rel_projecting)
 
-
-loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
+loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))+regularizer_weight*regularizer_loss
 
 optimizer=tf.train.GradientDescentOptimizer(learning_rate=lr)
 grads=optimizer.compute_gradients(loss,trainable)
@@ -122,16 +125,19 @@ saver=tf.train.Saver()
 
 
 
-'''
-test=tf.nn.embedding_lookup(ent_embedding,[1,2])
-loss=test
+'''B=np.array([[1.,2.,3.,4.],[2.,2.,3.,4.]])
+A=tf.Variable(B)
+C=tf.nn.embedding_lookup(A,[1])
+D=tf.nn.l2_normalize(C)
+
 optimizer=tf.train.GradientDescentOptimizer(learning_rate=1)
-grads=optimizer.compute_gradients(loss,trainable)
+grads=optimizer.compute_gradients(D)
 op_train=optimizer.apply_gradients(grads)'''
+
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
 filenames=['../data/WN182/ttt.txt']
-filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=1)
+filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
 key,value=reader.read(filename_queue)
@@ -140,48 +146,35 @@ col1,col2,col3=tf.decode_csv(value,record_defaults=record_defaults,field_delim="
 #features=tf.stack([col1,col2])
 col1_batch,col2_batch,col3_batch=tf.train.shuffle_batch([col1,col2,col3],batch_size=n_batch,capacity=200,min_after_dequeue=100)
 
-#0821
-'''
-head=tf.placeholder(tf.int32, [None, 1])
-tail=tf.placeholder(tf.int32,[None,1])
-rel=tf.placeholder(tf.int32,[None,1])'''
-'''
-m_rh=tf.matmul(r_p[rel],tf.transpose(e_p[head]))+tf.eye(dim)
-h_=tf.matmul(m_rh,e[head])
-m_rt=tf.matmul(r_p[rel],tf.transpose(e_p[tail]))+tf.eye(dim)
-t_=tf.matmul(m_rt,e[tail])'''
 
 # 启动图 (graph)
 init=tf.global_variables_initializer()
 init_local_op=tf.initialize_local_variables()
 with tf.Session() as sess:
-
+	n_iter=0
 	sess.run(init)
 	sess.run(init_local_op)
 
 
-	'''for i in range(100):
-		sess.run(op_train)
-		print(tst3.eval(),'\n',tst2.eval(),'\n',tst.eval())'''
-	'''ckpt=tf.train.get_checkpoint_state(checkpoint_dir)
+	ckpt=tf.train.get_checkpoint_state(checkpoint_dir)
 	if ckpt and ckpt.model_checkpoint_path:
-		print("success %s."% ckpt.model_checkpoint_path)
-		saver.restore(sess,ckpt.model_checkpoint_path)'''
+		print("success! %s."% ckpt.model_checkpoint_path)
+		saver.restore(sess,ckpt.model_checkpoint_path)
+	else:
+		print('fail to restore')
+
 	coord=tf.train.Coordinator()
 	threads=tf.train.start_queue_runners(coord=coord)
-	'''for i in range(10):
-		c1,c2=sess.run([col1_batch,col2_batch])
-		print(c1,c2)'''
 	try:
 		while not coord.should_stop():
+			n_iter+=1
 			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
 			input_pos=[]
 			for idx in range(len(c1)):
 				input_pos.append([entity_id_map[bytes.decode(c1[idx])],entity_id_map[bytes.decode(c2[idx])], \
 					relation_id_map[bytes.decode(c3[idx])]])
 			input_pos=np.asarray(input_pos,dtype=np.int32)
-
-			print(input_pos,input_pos.shape[0])
+			#print(input_pos,input_pos.shape[0])
 
 			temp=input_pos.tolist()
 			input_neg=[]
@@ -221,14 +214,11 @@ with tf.Session() as sess:
 									flag2=1
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
 			input_neg=np.array(input_neg,dtype=np.int32)
-			print(input_neg)
-
-
-
-
-
+			#print(input_neg)
 			losss,_=sess.run([loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
-			print(losss)
+			print(losss,margin_.eval())
+			if n_iter%100==0:
+				saved_path=saver.save(sess,checkpoint_dir+model_name)
 
 	except tf.errors.OutOfRangeError:
 		print('epochs complete!')
@@ -238,7 +228,6 @@ with tf.Session() as sess:
 	coord.request_stop()
 	coord.join(threads)
 	saver.save(sess,checkpoint_dir+model_name)
-
 
 
 # 拟合平面
