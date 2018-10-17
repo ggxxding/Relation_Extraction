@@ -1,0 +1,2 @@
+model_checkpoint_path: "/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/wn182/saver/modeld"
+all_model_checkpoint_paths: "/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/wn182/saver/modeld"

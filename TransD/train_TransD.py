@@ -3,20 +3,20 @@ import numpy as np
 import csv
 import math
 import random
-embed_dim=10
+embed_dim=20
 n_batch=150
-margin=2.
+margin=1.
 lr=0.0001
 regularizer_weight=1e-5
-num_epoch=1
-train_path='../data/WN182/ttt.txt'
-checkpoint_dir='../data/WN182/saver/'
+num_epoch=1500
+train_path='/data/Relation_Extraction/data/WN18/train.txt'
+checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('../data/WN182/entity2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -24,7 +24,7 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-csv_file=csv.reader(open('../data/WN182/relation2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -136,7 +136,7 @@ op_train=optimizer.apply_gradients(grads)'''
 
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['../data/WN182/ttt.txt']
+filenames=['/data/Relation_Extraction/data/WN18/train.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -168,6 +168,7 @@ with tf.Session() as sess:
 	try:
 		while not coord.should_stop():
 			n_iter+=1
+
 			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
 			input_pos=[]
 			for idx in range(len(c1)):
@@ -218,6 +219,7 @@ with tf.Session() as sess:
 			losss,_=sess.run([loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
 			print(losss,margin_.eval())
 			if n_iter%100==0:
+				print(n_iter*n_batch,'/',num_epoch*len(train_triple))
 				saved_path=saver.save(sess,checkpoint_dir+model_name)
 
 	except tf.errors.OutOfRangeError:

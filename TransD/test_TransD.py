@@ -4,18 +4,18 @@ import csv
 import math
 import random
 
-embed_dim=10
+embed_dim=20
 n_batch=1#
 num_epoch=1
 
-test_path='../data/WN182/ttt.txt'
-checkpoint_dir='../data/WN182/saver/'
+test_path='../data/wn182/ttt.txt'
+checkpoint_dir='../data/wn182/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('../data/WN182/entity2id.txt'))
+csv_file=csv.reader(open('../data/wn182/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -23,7 +23,7 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-csv_file=csv.reader(open('../data/WN182/relation2id.txt'))
+csv_file=csv.reader(open('../data/wn182/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -100,7 +100,7 @@ saver=tf.train.Saver()
 
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['../data/WN182/ttt.txt']
+filenames=['../data/wn182/ttt.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -185,6 +185,8 @@ with tf.Session() as sess:
 	hits10=hits10/len(rank_list)
 	rank_list=np.asarray(rank_list,dtype=np.int32)
 	mean_rank=np.sum(rank_list)/rank_list.shape[0]
+	print('hits10:',hits10)
+	print('meanrank:',mean_rank)
 
 
 	#saver.save(sess,checkpoint_dir+model_name)
