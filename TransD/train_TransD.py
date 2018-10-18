@@ -181,7 +181,8 @@ with tf.Session() as sess:
 			input_neg=[]
 			for idx in range(input_pos.shape[0]):
 				if np.random.uniform(-1,1) > 0:
-					flag1=0
+
+					'''flag1=0
 					flag2=0
 					while flag1==0 or flag2==0 :
 						flag1=0
@@ -195,10 +196,11 @@ with tf.Session() as sess:
 									[train_triple[idx1][0],train_triple[idx1][1],train_triple[idx1][2]]):
 									break
 								if idx1==(train_triple.shape[0]-1):
-									flag2=1
+									flag2=1'''
+					temp_ent=random.sample(list(entity_id_map.values()),1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
-					flag1=0
+					'''flag1=0
 					flag2=0
 					while flag1==0 or flag2==0:
 						flag1=0
@@ -212,7 +214,8 @@ with tf.Session() as sess:
 									[train_triple[idx1][0],train_triple[idx1][1],train_triple[idx1][2]]):
 									break
 								if idx1==(train_triple.shape[0]-1):
-									flag2=1
+									flag2=1'''
+					temp_ent=random.sample(list(entity_id_map.values()),1)[0]	
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
 			input_neg=np.array(input_neg,dtype=np.int32)
 			#print(input_neg)
