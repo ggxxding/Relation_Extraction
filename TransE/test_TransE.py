@@ -8,14 +8,14 @@ embed_dim=20
 n_batch=1#
 num_epoch=1
 
-test_path='../data/wn182/ttt.txt'
-checkpoint_dir='../data/wn182/saver/'
+test_path='/data/Relation_Extraction/data/WN18/test.txt'
+checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('../data/wn182/entity2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -23,7 +23,7 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-csv_file=csv.reader(open('../data/wn182/relation2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -49,58 +49,47 @@ bound = 6 / math.sqrt(embed_dim)
 ent_embedding = tf.get_variable("ent_embedding", [n_entity, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
                                                    	maxval=bound,seed=345))
-ent_projecting=tf.get_variable("ent_projecting", [n_entity, embed_dim],
+'''ent_projecting=tf.get_variable("ent_projecting", [n_entity, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
-                                                   	maxval=bound,seed=347))
+                                                   	maxval=bound,seed=347))'''
 trainable.append(ent_embedding)
-trainable.append(ent_projecting)
+#trainable.append(ent_projecting)
 
 rel_embedding = tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
                                                    	maxval=bound,seed=346))
-rel_projecting=tf.get_variable("rel_projecting", [n_relation, embed_dim],
+'''rel_projecting=tf.get_variable("rel_projecting", [n_relation, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
-                                                   	maxval=bound,seed=348))
+                                                   	maxval=bound,seed=348))'''
 trainable.append(rel_embedding)
-trainable.append(rel_projecting)
+#trainable.append(rel_projecting)
 
 
-train_input_pos=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
+train_input_pos=tf.placeholder(tf.int32,[None,3])
+#(nbatch,1)
+
 input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
-hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
+
+#hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
+
 input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1])
-tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
+
+#tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
+
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
-rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
-mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
-mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
-h_pos=tf.matmul(mrh_pos,input_h_pos)
-t_pos=tf.matmul(mrt_pos,input_t_pos)
 
-score_hrt_pos=tf.square(tf.norm(h_pos+input_r_pos-t_pos,axis=1))
-
-
-'''train_input_neg=tf.placeholder(tf.int32,[None,3])#(nbatch,1)
-input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
-hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
-input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
-tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
-input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
-mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
-h_neg=tf.matmul(mrh_neg,input_h_neg)
-t_neg=tf.matmul(mrt_neg,input_t_neg)
-score_hrt_neg=tf.square(tf.norm(h_neg+input_r_neg-t_neg,axis=1))'''
-'''regularizer_loss=tf.reduce_sum(ent_embedding)+tf.reduce_sum(ent_projecting) \
-+tf.reduce_sum(rel_embedding)+tf.reduce_sum(rel_projecting)'''
-
+#rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+#mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
+#mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
+#h_pos=tf.matmul(mrh_pos,input_h_pos)
+#t_pos=tf.matmul(mrt_pos,input_t_pos)
+score_hrt_pos=tf.square(tf.norm(input_h_pos+input_r_pos-input_t_pos,axis=1))
 
 saver=tf.train.Saver()
 
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['../data/wn182/ttt.txt']
+filenames=['/data/Relation_Extraction/data/WN18/test.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -137,6 +126,7 @@ with tf.Session() as sess:
 			n_iter+=1
 			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
 			input_pos=[]
+			print(len(c1))
 			for idx in range(len(c1)):
 				input_pos.append([entity_id_map[bytes.decode(c1[idx])],entity_id_map[bytes.decode(c2[idx])], \
 					relation_id_map[bytes.decode(c3[idx])]])
@@ -150,9 +140,9 @@ with tf.Session() as sess:
 			temp=input_pos.tolist()#temp=[[]]
 
 			for idx in range(len(entity_id_map)):
-				if (idx!=temp[0][0]) and ([idx,temp[0][1],temp[0][2]] not in test_triple):
-					scores_corrupted=sess.run(score_hrt_pos,{train_input_pos:np.asarray([[idx,temp[0][1],temp[0][2]]],dtype=np.int32)})
-					score_list.append(scores_corrupted[0][0])
+				#if (idx!=temp[0][0]) and ([idx,temp[0][1],temp[0][2]] not in test_triple):
+				scores_corrupted=sess.run(score_hrt_pos,{train_input_pos:np.asarray([[idx,temp[0][1],temp[0][2]]],dtype=np.int32)})
+				score_list.append(scores_corrupted[0][0])
 
 			#corrupted_input=np.array(input_neg,dtype=np.int32)
 

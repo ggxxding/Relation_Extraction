@@ -4,10 +4,10 @@ import csv
 import math
 import random
 embed_dim=20
-n_batch=150
-margin=1.
-lr=0.0001
-regularizer_weight=1e-5
+n_batch=512
+margin=2.
+lr=0.01
+regularizer_weight=0.001
 num_epoch=1500
 train_path='/data/Relation_Extraction/data/WN18/train.txt'
 checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
@@ -47,7 +47,7 @@ trainable=[] #可训练参数列表
 
 margin_=tf.constant(margin)
 bound = 6 / math.sqrt(embed_dim)
-ent_embedding = tf.get_variable("ent_embedding", [n_entity, embed_dim],
+ent_embedding =tf.get_variable("ent_embedding", [n_entity, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
                                                    	maxval=bound,seed=345))
 '''ent_projecting=tf.get_variable("ent_projecting", [n_entity, embed_dim],
@@ -56,7 +56,7 @@ ent_embedding = tf.get_variable("ent_embedding", [n_entity, embed_dim],
 trainable.append(ent_embedding)
 #trainable.append(ent_projecting)
 
-rel_embedding = tf.get_variable("rel_embedding", [n_relation, embed_dim],
+rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    initializer=tf.random_uniform_initializer(minval=-bound, \
                                                    	maxval=bound,seed=346))
 '''rel_projecting=tf.get_variable("rel_projecting", [n_relation, embed_dim],
@@ -64,7 +64,6 @@ rel_embedding = tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    	maxval=bound,seed=348))'''
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
-
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -85,7 +84,7 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-score_hrt_pos=tf.square(tf.norm(input_h_pos+input_r_pos-input_t_pos,axis=1))
+score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
@@ -99,9 +98,9 @@ input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]
 #h_neg=tf.matmul(mrh_neg,input_h_neg)
 #t_neg=tf.matmul(mrt_neg,input_t_neg)
 
-score_hrt_neg=tf.square(tf.norm(input_h_neg+input_r_neg-input_t_neg,axis=1))
+score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
 
-regularizer_loss=tf.reduce_sum(ent_embedding)+tf.reduce_sum(rel_embedding)
+regularizer_loss=tf.abs(tf.reduce_sum(ent_embedding)+tf.reduce_sum(rel_embedding))
 
 loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))+regularizer_weight*regularizer_loss
 
@@ -208,7 +207,7 @@ with tf.Session() as sess:
 			input_neg=np.array(input_neg,dtype=np.int32)
 			#print(input_neg)
 			losss,_=sess.run([loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
-			print(losss,margin_.eval())
+			print(losss)
 			if n_iter%100==0:
 				print(n_iter*n_batch,'/',num_epoch*len(train_triple))
 				saved_path=saver.save(sess,checkpoint_dir+model_name)
