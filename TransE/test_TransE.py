@@ -6,24 +6,24 @@ import random
 
 embed_dim=20
 n_batch=1#
+
 num_epoch=1
 
-test_path='/data/Relation_Extraction/data/WN18/test.txt'
-checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+test_path='../data/WN18/test.txt'
+checkpoint_dir='../data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+csv_file=csv.reader(open('../data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
 	n_entity+=1
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
-
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+csv_file=csv.reader(open('../data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -67,15 +67,15 @@ trainable.append(rel_embedding)
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 
-input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_entity,embed_dim,-1])#(n_batch,1) (n_batch,dim)
 
 #hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
 
-input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1])
+input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_entity,embed_dim,-1])
 
 #tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 
-input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_entity,embed_dim,-1])
 
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 
@@ -83,30 +83,16 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
-train_input_neg=tf.placeholder(tf.int32,[None,3])
-#(nbatch,1)
-input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
-#hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
-input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
-#tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
-input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-#rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-#mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
-#mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
-#h_neg=tf.matmul(mrh_neg,input_h_neg)
-#t_neg=tf.matmul(mrt_neg,input_t_neg)
-
-score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+score__=input_h_pos+input_r_pos-input_t_pos
+score_hrt_pos=tf.norm(score__,ord=1,axis=1)
 
 
-loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
 
 
 saver=tf.train.Saver()
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['/data/Relation_Extraction/data/WN18/test.txt']
+filenames=['../data/WN18/test.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -150,33 +136,16 @@ with tf.Session() as sess:
 			input_pos=np.asarray(input_pos,dtype=np.int32)
 			temp=input_pos.tolist()
 			#head
-			index=input_pos[0]
+			index=input_pos[0][0]
 			input_list=[]
-			score_list=[]
 			for idx in range(len(entity_id_map)):
 				input_list.append([idx,temp[0][1],temp[0][2]])
-			scores=sess.run(score_hrt_pos,{train_input_pos:input_pos})
-
-			score_list.append(scores[0][0])
-			temp=input_pos.tolist()#temp=[[]]
-
-			for idx in range(len(entity_id_map)):
-				#if (idx!=temp[0][0]) and ([idx,temp[0][1],temp[0][2]] not in test_triple):
-				scores_corrupted=sess.run(score_hrt_pos,{train_input_pos:np.asarray([[idx,temp[0][1],temp[0][2]]],dtype=np.int32)})
-				score_list.append(scores_corrupted[0][0])
-
-			#corrupted_input=np.array(input_neg,dtype=np.int32)
-
-
-
-
-			n_loading+=1
-			score_list.sort()
-			rank=score_list.index(scores[0][0])
-			rank_list.append(rank)
-
-			print(n_loading)
-			print(score_list.index(scores[0][0]))
+			#print(len(input_list))#
+			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
+			scores=scores.reshape(-1).tolist()
+			temp=scores[index]
+			scores.sort()
+			rank_list.append(scores.index(temp))
 
 
 			'''if n_iter%100==0:
