@@ -64,7 +64,6 @@ rel_embedding = tf.get_variable("rel_embedding", [n_relation, embed_dim],
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
 
-
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 
@@ -79,14 +78,32 @@ input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+
 #mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-score_hrt_pos=tf.square(tf.norm(input_h_pos+input_r_pos-input_t_pos,axis=1))
+score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+train_input_neg=tf.placeholder(tf.int32,[None,3])
+#(nbatch,1)
+input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+#hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
+input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
+#tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
+input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
+#rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
+#mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
+#mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
+#h_neg=tf.matmul(mrh_neg,input_h_neg)
+#t_neg=tf.matmul(mrt_neg,input_t_neg)
+
+score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+
+
+loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
+
 
 saver=tf.train.Saver()
-
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
 filenames=['/data/Relation_Extraction/data/WN18/test.txt']
@@ -126,14 +143,18 @@ with tf.Session() as sess:
 			n_iter+=1
 			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
 			input_pos=[]
-			print(len(c1))
+			#print(len(c1))
 			for idx in range(len(c1)):
 				input_pos.append([entity_id_map[bytes.decode(c1[idx])],entity_id_map[bytes.decode(c2[idx])], \
 					relation_id_map[bytes.decode(c3[idx])]])
 			input_pos=np.asarray(input_pos,dtype=np.int32)
+			temp=input_pos.tolist()
+			#head
+			index=input_pos[0]
+			input_list=[]
 			score_list=[]
-			#print(input_pos,input_pos.shape[0])
-
+			for idx in range(len(entity_id_map)):
+				input_list.append([idx,temp[0][1],temp[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_pos})
 
 			score_list.append(scores[0][0])
