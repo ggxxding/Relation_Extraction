@@ -1,0 +1,2 @@
+model_checkpoint_path: "/data/Relation_Extraction/data/WN18/saver/modeld"
+all_model_checkpoint_paths: "/data/Relation_Extraction/data/WN18/saver/modeld"
