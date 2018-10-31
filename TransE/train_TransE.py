@@ -6,17 +6,20 @@ import random
 embed_dim=20
 n_batch=512
 margin=2.
-lr=0.01
-regularizer_weight=0.001
-num_epoch=1500
-train_path='/data/Relation_Extraction/data/WN18/train.txt'
-checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+lr=0.0001
+regularizer_weight=0.00001
+num_epoch=1
+#train_path='/data/Relation_Extraction/data/WN18/train.txt'
+train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
+#checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -24,7 +27,8 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -33,7 +37,8 @@ for lines in csv_file:
 	#id_relation_map[line[1]]=line[0]
 print("entity number:%d,relation number:%d"%(n_entity,n_relation))
 #print(entity_id_map)
-
+entity_list=list(entity_id_map.values())
+relation_list=list(relation_id_map.values())
 def load_triple(file_path):
 	with open(file_path,'r',encoding='utf-8') as f_triple:
 		return np.asarray([[entity_id_map[x.strip().split('\t')[0]],
@@ -124,7 +129,8 @@ op_train=optimizer.apply_gradients(grads)'''
 
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['/data/Relation_Extraction/data/WN18/train.txt']
+#filenames=['/data/Relation_Extraction/data/WN18/train.txt']
+filenames=['/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -132,7 +138,7 @@ key,value=reader.read(filename_queue)
 record_defaults=[['NULL'],['NULL'],['NULL']]
 col1,col2,col3=tf.decode_csv(value,record_defaults=record_defaults,field_delim="\t")
 #features=tf.stack([col1,col2])
-col1_batch,col2_batch,col3_batch=tf.train.shuffle_batch([col1,col2,col3],batch_size=n_batch,capacity=200,min_after_dequeue=100)
+col1_batch,col2_batch,col3_batch=tf.train.batch([col1,col2,col3],batch_size=n_batch)
 
 
 # 启动图 (graph)
@@ -166,6 +172,7 @@ with tf.Session() as sess:
 			#print(input_pos,input_pos.shape[0])
 
 			temp=input_pos.tolist()
+			print(input_pos[0:2])
 			input_neg=[]
 			for idx in range(input_pos.shape[0]):
 				if np.random.uniform(-1,1) > 0:
@@ -184,7 +191,7 @@ with tf.Session() as sess:
 									break
 								if idx1==(train_triple.shape[0]-1):
 									flag2=1'''
-					temp_ent=random.sample(list(entity_id_map.values()),1)[0]			
+					temp_ent=random.sample(entity_list,1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
 					'''flag1=0
@@ -202,12 +209,13 @@ with tf.Session() as sess:
 									break
 								if idx1==(train_triple.shape[0]-1):
 									flag2=1'''
-					temp_ent=random.sample(list(entity_id_map.values()),1)[0]	
+					temp_ent=random.sample(entity_list,1)[0]	
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
 			input_neg=np.array(input_neg,dtype=np.int32)
 			#print(input_neg)
 			losss,_=sess.run([loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
 			print(losss)
+
 			if n_iter%100==0:
 				print(n_iter*n_batch,'/',num_epoch*len(train_triple))
 				saved_path=saver.save(sess,checkpoint_dir+model_name)

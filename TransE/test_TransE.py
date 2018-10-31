@@ -9,21 +9,25 @@ n_batch=1#
 
 num_epoch=1
 
-test_path='/data/Relation_Extraction/data/WN18/test.txt'
-checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+#test_path='/data/Relation_Extraction/data/WN18/test.txt'
+test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
+#checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
 	n_entity+=1
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
-csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -92,7 +96,8 @@ score_hrt_pos=tf.norm(score__,ord=1,axis=1)
 saver=tf.train.Saver()
 
 #filenames=['../data/WN18/entity2id.txt','../data/WN18/relation2id.txt']
-filenames=['/data/Relation_Extraction/data/WN18/test.txt']
+#filenames=['/data/Relation_Extraction/data/WN18/test.txt']
+filenames=['/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt']
 filename_queue=tf.train.string_input_producer(filenames,shuffle=False,num_epochs=num_epoch)
 #num_epochs 迭代轮数，每个数据最多出现多少次
 reader=tf.TextLineReader()
@@ -128,6 +133,7 @@ with tf.Session() as sess:
 		while not coord.should_stop():
 			n_iter+=1
 			c1,c2,c3=sess.run([col1_batch,col2_batch,col3_batch])
+			#print(n_iter)
 			input_pos=[]
 			#print(len(c1))
 			for idx in range(len(c1)):
