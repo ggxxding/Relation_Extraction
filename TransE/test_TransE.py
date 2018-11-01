@@ -139,7 +139,7 @@ with tf.Session() as sess:
 			for idx in range(len(c1)):
 				input_pos.append([entity_id_map[bytes.decode(c1[idx])],entity_id_map[bytes.decode(c2[idx])], \
 					relation_id_map[bytes.decode(c3[idx])]])
-			input_pos=np.asarray(input_pos,dtype=np.int32)
+			input_pos=np.asarray(input_pos,dype=np.int32)
 			temp=input_pos.tolist()
 			#head
 			index=input_pos[0][0]
