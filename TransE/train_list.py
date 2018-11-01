@@ -124,7 +124,7 @@ init=tf.global_variables_initializer()
 init_local_op=tf.initialize_local_variables()
 loss_sum=0
 with tf.Session() as sess:
-	n_iter=0
+
 	sess.run(init)
 	sess.run(init_local_op)
 	ckpt=tf.train.get_checkpoint_state(checkpoint_dir)
@@ -146,49 +146,33 @@ with tf.Session() as sess:
 			else:
 				input_pos=train_triple[n_idx:n_idx+n_batch]
 			#input_pos=np.asarray(input_pos,dtype=np.int32)
+
 			n_idx+=n_batch
 			temp=input_pos.tolist()
 			input_neg=[]
 			for idx in range(input_pos.shape[0]):
 				if np.random.uniform(-1,1) > 0:
-					'''flag1=0
-					flag2=0
-					while flag1==0 or flag2==0 :
-						flag1=0
-						flag2=0
-						temp_ent=random.sample(list(entity_id_map.values()),1)[0]
-						if int(temp_ent) != temp[idx][0]:
-							flag1=1
-						if flag1==1:
-							for idx1 in range(train_triple.shape[0]):
-								if ([int(temp_ent),temp[idx][1],temp[idx][2]]== [train_triple[idx1][0],train_triple[idx1][1],train_triple[idx1][2]]):
-									break
-								if idx1==(train_triple.shape[0]-1):
-									flag2=1'''
 					temp_ent=random.sample(entity_list,1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
-					'''flag1=0
-					flag2=0
-					while flag1==0 or flag2==0:
-						flag1=0
-						flag2=0
-						temp_ent=random.sample(list(entity_id_map.values()),1)[0]
-						if int(temp_ent) != temp[idx][2]:
-							flag1=1
-						if flag1==1:
-							for idx1 in range(train_triple.shape[0]):
-								if ([temp[idx][0],int(temp_ent),temp[idx][2]]== [train_triple[idx1][0],train_triple[idx1][1],train_triple[idx1][2]]):
-									break
-								if idx1==(train_triple.shape[0]-1):
-									flag2=1'''
 					temp_ent=random.sample(entity_list,1)[0]	
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
 			input_neg=np.asarray(input_neg,dtype=np.int32)
 			#print(input_neg)
-			losss,_,hp,tp,rp,hn,tn,rn=sess.run([loss,op_train,input_h_pos,input_t_pos,\
-				input_r_pos,input_h_neg,input_t_neg,input_r_neg],{train_input_pos:input_pos,train_input_neg:input_neg})
-			loss_sum+=losss
+			hp,tp,rp,hn,tn,rn,loss_iter,_=sess.run([input_h_pos,input_t_pos,\
+				input_r_pos,input_h_neg,input_t_neg,input_r_neg,loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
+			loss_sum+=loss_iter
+
+			norm_list=[]
+			for idx,arr in enumerate(hp):
+				if np.linalg.norm(arr)>1:
+					if input_pos[idx][0] not in norm_list:
+						norm_list.append(input_pos[idx][0])
+			for idx,arr in enumerate(tp):
+				if np.linalg.norm(arr)>1:
+					if input_pos[idx][1] not in norm_list:
+
+
 
 
 			if n_iter%100==0:
