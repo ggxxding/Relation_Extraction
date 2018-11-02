@@ -14,17 +14,17 @@ num_epoch=1000
 #train/test_triple_type: [[int32,int32,int32]...]
 
 
-#train_path='/data/Relation_Extraction/data/WN18/train.txt'
-train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-#checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
-checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+train_path='/data/Relation_Extraction/data/WN18/train.txt'
+#train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
+checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+#checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
+#csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -32,8 +32,8 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
+csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
+#csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -176,10 +176,7 @@ with tf.Session() as sess:
 			for idx,arr in enumerate(tp):
 				if np.linalg.norm(arr)>1:
 					if input_pos[idx][1] not in norm_list:
-
-
-
-
+						norm_list.append()
 			if n_iter%100==0:
 				print(n_iter,'/',total)
 				print(loss_sum)
