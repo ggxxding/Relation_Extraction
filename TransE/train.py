@@ -112,11 +112,11 @@ rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
 
-#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
 
-score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
-tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+#score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
+#tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -136,10 +136,10 @@ rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
-#score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
 #L1
-score_hrt_neg=tf.matmul((input_h_neg+input_r_neg),input_t_neg,transpose_a=True)+\
-tf.matmul(input_h_neg,(input_t_neg-input_r_neg),transpose_a=True)
+#score_hrt_neg=tf.matmul((input_h_neg+input_r_neg),input_t_neg,transpose_a=True)+\
+#tf.matmul(input_h_neg,(input_t_neg-input_r_neg),transpose_a=True)
 
 regularizer_loss=tf.reduce_sum(tf.abs(input_h_pos))+tf.reduce_sum(tf.abs(input_t_pos))+\
 tf.reduce_sum(tf.abs(input_r_pos))+tf.reduce_sum(tf.abs(input_h_neg))+\
@@ -218,7 +218,7 @@ with tf.Session() as sess:
 			tn=(tn>1)*input_neg[:,1]
 			rn=(rn>1)*input_neg[:,2]# id of the vectors which need to be normalized
 			#print(hp)
-			
+
 			norm_elist=[]
 			norm_rlist=[]
 			for i in hp:
