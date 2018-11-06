@@ -6,17 +6,28 @@ import random
 embed_dim=50
 n_batch=1	#needn't change it
 num_epoch=1	#needn't change it
-#test_path='/data/Relation_Extraction/data/WN18/test.txt'
-test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
-#checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
-checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+location='mac'
+if location=='104':
+	test_path='/data/Relation_Extraction/data/WN18/test.txt'
+	checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+elif location=='local':
+	test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
+	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+elif location=='mac':
+	test_path='../data/WN18/test.txt'
+	checkpoint_dir='../data/WN18/saver/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
+if location=='104':
+	dir='/data/Relation_Extraction/data/WN18/entity2id.txt'
+elif location=='local':
+	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'
+elif location=='mac':
+	dir='../data/WN18/entity2id.txt'
+csv_file=csv.reader(open(dir))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -24,8 +35,13 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
+if location=='104':
+	dir='/data/Relation_Extraction/data/WN18/relation2id.txt'
+elif location=='local':
+	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'
+elif location=='mac':
+	dir='../data/WN18/relation2id.txt'
+csv_file=csv.reader(open(dir))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -125,12 +141,12 @@ with tf.Session() as sess:
 		while(n_idx<n_triple):
 			input_pos=test_triple[n_idx:n_idx+1]
 			n_idx+=1
-			temp=input_pos.tolist()
+			temp_input=input_pos.tolist()
 			#head
 			index=input_pos[0][0]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([idx,temp[0][1],temp[0][2]])
+				input_list.append([idx,temp_input[0][1],temp_input[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
@@ -138,21 +154,24 @@ with tf.Session() as sess:
 			rank_list.append(scores.index(temp))
 			print(scores.index(temp))
 
+
 			#tail
+			
 			index=input_pos[0][1]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([temp[0][0],idx,temp[0][2]])
+				input_list.append([temp_input[0][0],idx,temp_input[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
 			scores.sort()
+
 			rank_list.append(scores.index(temp))
 			print(scores.index(temp))
 
 			if n_idx%100==0:
 				print(n_idx,'/',n_triple)
-				
+
 
 	hits10=0
 	for i in rank_list:

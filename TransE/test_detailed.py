@@ -6,19 +6,34 @@ import random
 embed_dim=50
 n_batch=1	#needn't change it
 num_epoch=1	#needn't change it
-#test_path='/data/Relation_Extraction/data/WN18/test.txt'
-test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-valid_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-#checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
-checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+if location=='104':
+	train_path='/data/Relation_Extraction/data/WN18/train.txt'
+	test_path='/data/Relation_Extraction/data/WN18/test.txt'
+	valid_path='/data/Relation_Extraction/data/WN18/valid.txt'
+	checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
+elif location=='local':
+	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
+	test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
+	valid_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/valid.txt'
+	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+elif location=='mac':
+	train_path='../data/WN182/train.txt'
+	test_path='../data/WN182/test.txt'
+	valid_path='../data/WN182/valid.txt'
+	checkpoint_dir='../data/WN182/saver/'
+
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
 id_relation_map={}
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/entity2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'))
+if location=='104':
+	dir='/data/Relation_Extraction/data/WN18/entity2id.txt'
+elif location=='local':
+	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'
+elif location=='mac':
+	dir='../data/WN182/entity2id.txt'
+csv_file=csv.reader(open(dir))
 n_entity=0
 for lines in csv_file:
 	line=lines[0].split('\t')
@@ -26,8 +41,13 @@ for lines in csv_file:
 	entity_id_map[line[0]]=line[1]
 	#id_entity_map[line[1]]=line[0]
 
-#csv_file=csv.reader(open('/data/Relation_Extraction/data/WN18/relation2id.txt'))
-csv_file=csv.reader(open('/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'))
+if location=='104':
+	dir='/data/Relation_Extraction/data/WN18/relation2id.txt'
+elif location=='local':
+	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'
+elif location=='mac':
+	dir='../data/WN182/relation2id.txt'
+csv_file=csv.reader(open(dir))
 n_relation=0
 for lines in csv_file:
 	line=lines[0].split('\t')
