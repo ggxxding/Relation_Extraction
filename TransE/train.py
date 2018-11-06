@@ -4,11 +4,11 @@ import csv
 import math
 import random
 embed_dim=50
-n_batch=512
-margin=2.
+n_batch=960
+margin=0.9
 lr=0.0001
 regularizer_weight=0
-num_epoch=1000
+num_epoch=500
 location='mac'
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
@@ -24,7 +24,7 @@ elif location=='mac':
 	train_path='../data/WN18/train.txt'
 	checkpoint_dir='../data/WN18/saver/'
 
-model_name='modeld'
+model_name='modele'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
@@ -111,7 +111,13 @@ rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+
+#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+#L1
+
+score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
+tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
@@ -130,7 +136,10 @@ rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
-score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+#score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+#L1
+score_hrt_neg=tf.matmul((input_h_neg+input_r_neg),input_t_neg,transpose_a=True)+\
+tf.matmul(input_h_neg,(input_t_neg-input_r_neg),transpose_a=True)
 
 regularizer_loss=tf.reduce_sum(tf.abs(input_h_pos))+tf.reduce_sum(tf.abs(input_t_pos))+\
 tf.reduce_sum(tf.abs(input_r_pos))+tf.reduce_sum(tf.abs(input_h_neg))+\
@@ -199,6 +208,7 @@ with tf.Session() as sess:
 				rpn,hnn,tnn,rnn,eZeroNorm,rZeroNorm,loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
 			loss_sum+=loss_iter
 
+
 			#print(hp)
 			#hp-rn are the norms(shape:[n_batch])
 			hp=(hp>1)*input_pos[:,0]
@@ -208,7 +218,6 @@ with tf.Session() as sess:
 			tn=(tn>1)*input_neg[:,1]
 			rn=(rn>1)*input_neg[:,2]# id of the vectors which need to be normalized
 			#print(hp)
-			
 			norm_elist=[]
 			norm_rlist=[]
 			for i in hp:

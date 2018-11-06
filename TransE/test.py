@@ -102,7 +102,12 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+#L1
+
+score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
+tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_entity,embed_dim,-1])#(n_batch,1) (n_batch,dim)
