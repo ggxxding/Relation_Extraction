@@ -218,6 +218,7 @@ with tf.Session() as sess:
 			tn=(tn>1)*input_neg[:,1]
 			rn=(rn>1)*input_neg[:,2]# id of the vectors which need to be normalized
 			#print(hp)
+			
 			norm_elist=[]
 			norm_rlist=[]
 			for i in hp:
