@@ -3,10 +3,10 @@ import numpy as np
 import csv
 import math
 import random
-embed_dim=50
+embed_dim=20
 n_batch=512
 margin=2.
-lr=0.0001
+lr=0.001
 regularizer_weight=0
 num_epoch=500
 location='mac'
@@ -100,17 +100,17 @@ train_input_pos=tf.placeholder(tf.int32,[None,3])
 input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
 hpn=tf.reshape(tf.norm(input_h_pos,axis=1,ord=2),[n_batch,1,1])
 hpn_=tf.tile(hpn,[1,embed_dim,1])
-hpn__=tf.where(hpn_>1,tf.nn.l2_normalize(input_h_pos),input_h_pos)
+hpn__=tf.where(hpn_>1.,tf.nn.l2_normalize(input_h_pos),input_h_pos)
 #hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
 input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 tpn=tf.reshape(tf.norm(input_t_pos,axis=1,ord=2),[n_batch,1,1])
 tpn_=tf.tile(tpn,[1,embed_dim,1])
-tpn__=tf.where(tpn_>1,tf.nn.l2_normalize(input_t_pos),input_t_pos)
+tpn__=tf.where(tpn_>1.,tf.nn.l2_normalize(input_t_pos),input_t_pos)
 #tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[n_batch,1,1])
 rpn_=tf.tile(rpn,[1,embed_dim,1])
-rpn__=tf.where(rpn_>1,tf.nn.l2_normalize(input_r_pos),input_r_pos)
+rpn__=tf.where(rpn_>1.,tf.nn.l2_normalize(input_r_pos),input_r_pos)
 
 score_hrt_pos=tf.norm(hpn__+rpn__-tpn__,ord=1,axis=1)
 #L1
@@ -120,17 +120,17 @@ train_input_neg=tf.placeholder(tf.int32,[None,3])
 input_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,0]),[n_batch,embed_dim,-1])#(n_batch,1) (n_batch,dim)
 hnn=tf.reshape(tf.norm(input_h_neg,axis=1,ord=2),[n_batch,1,1])
 hnn_=tf.tile(hnn,[1,embed_dim,1])
-hnn__=tf.where(hnn_>1,tf.nn.l2_normalize(input_h_neg),input_h_neg)
+hnn__=tf.where(hnn_>1.,tf.nn.l2_normalize(input_h_neg),input_h_neg)
 #hp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,0]),[n_batch,embed_dim,-1])
 input_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_neg[:,1]),[n_batch,embed_dim,-1])
 tnn=tf.reshape(tf.norm(input_t_neg,axis=1,ord=2),[n_batch,1,1])
 tnn_=tf.tile(tnn,[1,embed_dim,1])
-tnn__=tf.where(tnn_>1,tf.nn.l2_normalize(input_t_neg),input_t_neg)
+tnn__=tf.where(tnn_>1.,tf.nn.l2_normalize(input_t_neg),input_t_neg)
 #tp_neg=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_neg[:,1]),[n_batch,embed_dim,-1])
 input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
 rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[n_batch,1,1])
 rnn_=tf.tile(rnn,[1,embed_dim,1])
-rnn__=tf.where(rnn_>1,tf.nn.l2_normalize(input_r_neg),input_r_neg)
+rnn__=tf.where(rnn_>1.,tf.nn.l2_normalize(input_r_neg),input_r_neg)
 #rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
 #mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
 #mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)

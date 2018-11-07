@@ -217,6 +217,10 @@ with tf.Session() as sess:
 			n_iter+=1
 			if n_idx+n_batch>n_triple:
 				input_pos=np.concatenate([train_triple[n_idx:n_idx+n_batch],train_triple[0:n_idx+n_batch-n_triple]],axis=0)
+				train_triple=train_triple.tolist()
+				random.shuffle(train_triple)
+				train_triple=np.asarray(train_triple,dtype=np.int32)
+				print("shuffled")
 			else:
 				input_pos=train_triple[n_idx:n_idx+n_batch]
 			#input_pos=np.asarray(input_pos,dtype=np.int32)
