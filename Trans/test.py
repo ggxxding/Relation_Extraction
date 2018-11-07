@@ -89,6 +89,13 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
 
+mh=tf.get_variable("m_h",[1,embed_dim,embed_dim],\
+	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
+trainable.append(mh)
+mt=tf.get_variable("m_t",[1,embed_dim,embed_dim],\
+	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
+trainable.append(mt)
+
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_entity,embed_dim,-1])#(n_batch,1) (n_batch,dim)
@@ -104,9 +111,19 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
 #score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
+mh_h_pos=tf.matmul(tf.tile(mh,[n_entity,1,1]),input_h_pos)
+mh_h_pos_norm=tf.norm(mh_h_pos,axis=1)
+mh_h_pos_reshape=tf.reshape(mh_h_pos_norm,[n_entity,1,-1])
+mh_h_pos_tile=tf.tile(mh_h_pos_reshape,[1,50,1])
+#mhh_pos=tf.where(mh_h_pos_tile>1,tf.nn.l2_normalize(mh_h_pos,axis=1),mh_h_pos)
+mhh_pos=mh_h_pos
 
-score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
-tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+mt_t_pos=tf.matmul(tf.tile(mt,[n_entity,1,1]),input_t_pos)
+#mtt_pos=tf.where(tf.tile(tf.reshape(tf.norm(mt_t_pos,axis=1),[n_batch,1,-1]),[1,50,1])>1,tf.nn.l2_normalize(mt_t_pos,axis=1),mt_t_pos)
+mtt_pos=mt_t_pos
+score_hrt_pos=tf.norm(mhh_pos+input_r_pos-mtt_pos,ord=2,axis=1)
+
+
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -146,12 +163,12 @@ with tf.Session() as sess:
 		while(n_idx<n_triple):
 			input_pos=test_triple[n_idx:n_idx+1]
 			n_idx+=1
-			temp_input=input_pos.tolist()
+			#temp_input=input_pos.tolist()
 			#head
 			index=input_pos[0][0]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([idx,temp_input[0][1],temp_input[0][2]])
+				input_list.append([idx,input_pos[0][1],input_pos[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
@@ -165,7 +182,7 @@ with tf.Session() as sess:
 			index=input_pos[0][1]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([temp_input[0][0],idx,temp_input[0][2]])
+				input_list.append([input_pos[0][0],idx,input_pos[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]

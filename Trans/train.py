@@ -5,11 +5,12 @@ import math
 import random
 embed_dim=50
 n_batch=960
-margin=0.9
-lr=0.0001
+margin=4.
+lr=0.01
 regularizer_weight=0
 num_epoch=500
 location='mac'
+
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -94,6 +95,15 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
 
+mh=tf.get_variable("m_h",[1,embed_dim,embed_dim],\
+	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
+trainable.append(mh)
+
+mt=tf.get_variable("m_t",[1,embed_dim,embed_dim],\
+	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
+trainable.append(mt)
+
+
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
 
@@ -111,12 +121,20 @@ rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
-
 #score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
-#L1
+mh_h_pos=tf.matmul(tf.tile(mh,[n_batch,1,1]),input_h_pos)
+mh_h_pos_norm=tf.norm(mh_h_pos,axis=1)
+mh_h_pos_reshape=tf.reshape(mh_h_pos_norm,[n_batch,1,-1])
+mh_h_pos_tile=tf.tile(mh_h_pos_reshape,[1,50,1])
+mhh_pos=tf.where(mh_h_pos_tile>1,tf.nn.l2_normalize(mh_h_pos,axis=1),mh_h_pos)
+#mhh_pos=mh_h_pos
 
-score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
-tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+mt_t_pos=tf.matmul(tf.tile(mt,[n_batch,1,1]),input_t_pos)
+mtt_pos=tf.where(tf.tile(tf.reshape(tf.norm(mt_t_pos,axis=1),[n_batch,1,-1]),[1,50,1])>1,tf.nn.l2_normalize(mt_t_pos,axis=1),mt_t_pos)
+#mtt_pos=mt_t_pos
+score_hrt_pos=tf.norm(mhh_pos+input_r_pos-mtt_pos,ord=1,axis=1)
+
+
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -136,10 +154,21 @@ rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
-#score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
-#L1
-score_hrt_neg=tf.matmul((input_h_neg+input_r_neg),input_t_neg,transpose_a=True)+\
-tf.matmul(input_h_neg,(input_t_neg-input_r_neg),transpose_a=True)
+mh_h_neg=tf.matmul(tf.tile(mh,[n_batch,1,1]),input_h_neg)
+mh_h_neg_norm=tf.norm(mh_h_neg,axis=1)
+mh_h_neg_reshape=tf.reshape(mh_h_neg_norm,[n_batch,1,-1])
+mh_h_neg_tile=tf.tile(mh_h_neg_reshape,[1,50,1])
+mhh_neg=tf.where(mh_h_neg_tile>1,tf.nn.l2_normalize(mh_h_neg,axis=1),mh_h_neg)
+#mhh_neg=mh_h_neg
+
+mt_t_neg=tf.matmul(tf.tile(mt,[n_batch,1,1]),input_t_neg)
+mt_t_neg_norm=tf.norm(mt_t_neg,axis=1)
+mt_t_neg_reshape=tf.reshape(mt_t_neg_norm,[n_batch,1,-1])
+mt_t_neg_tile=tf.tile(mt_t_neg_reshape,[1,50,1])
+mtt_neg=tf.where(mt_t_neg_tile>1,tf.nn.l2_normalize(mt_t_neg,axis=1),mt_t_neg)
+#mtt_neg=mt_t_neg
+
+score_hrt_neg=tf.norm(mhh_neg+input_r_neg-mtt_neg,ord=1,axis=1)
 
 regularizer_loss=tf.reduce_sum(tf.abs(input_h_pos))+tf.reduce_sum(tf.abs(input_t_pos))+\
 tf.reduce_sum(tf.abs(input_r_pos))+tf.reduce_sum(tf.abs(input_h_neg))+\
@@ -153,8 +182,8 @@ op_train=optimizer.apply_gradients(grads)
 
 idx_e=tf.placeholder(tf.int32,[None])
 idx_r=tf.placeholder(tf.int32,[None])
-normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e))
-normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r))
+normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e),axis=1)
+normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r),axis=1)
 updateE=tf.scatter_update(ent_embedding,idx_e,normedE)
 updateR=tf.scatter_update(rel_embedding,idx_r,normedR)
 
@@ -243,8 +272,11 @@ with tf.Session() as sess:
 				norm_elist.append(0)
 			if rz>1:
 				norm_rlist.append(0)
-			sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
+			#sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
+			sess.run(updateR,{idx_r:norm_rlist})
+
 			if n_iter%100==0:
+				print(np.linalg.norm(mh.eval()))
 				print(n_iter,'/',total)
 				print(loss_sum)
 				loss_sum=0

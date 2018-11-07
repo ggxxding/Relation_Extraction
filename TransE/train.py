@@ -4,9 +4,9 @@ import csv
 import math
 import random
 embed_dim=50
-n_batch=960
-margin=0.9
-lr=0.0001
+n_batch=512
+margin=2.
+lr=0.01
 regularizer_weight=0
 num_epoch=500
 location='mac'
@@ -22,7 +22,7 @@ elif location=='local':
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
 	train_path='../data/WN18/train.txt'
-	checkpoint_dir='../data/WN18/saver/'
+	checkpoint_dir='../data/WN18/saver3/'
 
 model_name='modele'
 entity_id_map={}
@@ -153,8 +153,8 @@ op_train=optimizer.apply_gradients(grads)
 
 idx_e=tf.placeholder(tf.int32,[None])
 idx_r=tf.placeholder(tf.int32,[None])
-normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e))
-normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r))
+normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e),axis=1)
+normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r),axis=1)
 updateE=tf.scatter_update(ent_embedding,idx_e,normedE)
 updateR=tf.scatter_update(rel_embedding,idx_r,normedR)
 

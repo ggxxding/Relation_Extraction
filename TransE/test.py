@@ -15,7 +15,7 @@ elif location=='local':
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
 	test_path='../data/WN18/test.txt'
-	checkpoint_dir='../data/WN18/saver/'
+	checkpoint_dir='../data/WN18/saver2/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
@@ -146,12 +146,12 @@ with tf.Session() as sess:
 		while(n_idx<n_triple):
 			input_pos=test_triple[n_idx:n_idx+1]
 			n_idx+=1
-			temp_input=input_pos.tolist()
+			#temp_input=input_pos.tolist()
 			#head
 			index=input_pos[0][0]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([idx,temp_input[0][1],temp_input[0][2]])
+				input_list.append([idx,input_pos[0][1],input_pos[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
@@ -165,7 +165,7 @@ with tf.Session() as sess:
 			index=input_pos[0][1]
 			input_list=[]
 			for idx in range(n_entity):
-				input_list.append([temp_input[0][0],idx,temp_input[0][2]])
+				input_list.append([input_pos[0][0],idx,input_pos[0][2]])
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
