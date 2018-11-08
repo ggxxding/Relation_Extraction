@@ -8,7 +8,7 @@ n_batch=960
 margin=4.
 lr=0.01
 regularizer_weight=0
-num_epoch=500
+num_epoch=400
 location='mac'
 
 #n_entity/n_relation/n_triple
@@ -20,10 +20,10 @@ if location=='104':
 	checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
 elif location=='local':
 	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
+	checkpoint_dir='/saver/'
 elif location=='mac':
 	train_path='../data/WN18/train.txt'
-	checkpoint_dir='../data/WN18/saver/'
+	checkpoint_dir='e50b960m2l2/'
 
 model_name='modele'
 entity_id_map={}
@@ -217,10 +217,10 @@ with tf.Session() as sess:
 			n_iter+=1
 			if n_idx+n_batch>n_triple:
 				input_pos=np.concatenate([train_triple[n_idx:n_idx+n_batch],train_triple[0:n_idx+n_batch-n_triple]],axis=0)
-				train_triple=train_triple.tolist()
+				'''train_triple=train_triple.tolist()
 				random.shuffle(train_triple)
 				train_triple=np.asarray(train_triple,dtype=np.int32)
-				print("shuffled")
+				print("shuffled")'''
 			else:
 				input_pos=train_triple[n_idx:n_idx+n_batch]
 			#input_pos=np.asarray(input_pos,dtype=np.int32)

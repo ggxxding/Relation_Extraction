@@ -15,7 +15,7 @@ elif location=='local':
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
 	test_path='../data/WN18/test.txt'
-	checkpoint_dir='../data/WN18/saver/'
+	checkpoint_dir='e50b960m2l2/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
