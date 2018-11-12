@@ -15,7 +15,7 @@ elif location=='local':
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
 	test_path='../data/WN18/test.txt'
-	checkpoint_dir='e100b960m0.9/'
+	checkpoint_dir='e100b960m0.9WN18filter/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
@@ -105,8 +105,8 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
 
-score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
-tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+score_hrt_pos=tf.reduce_sum((input_h_pos+input_r_pos)*input_t_pos,axis=1)+\
+tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)

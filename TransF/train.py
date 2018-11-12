@@ -5,10 +5,12 @@ import math
 import random
 embed_dim=100
 n_batch=960
-margin=1.
-lr=0.0001
+margin=0.9
+lr1=0.01
+lr2=0.0001
+lr=lr1
 regularizer_weight=0
-num_epoch=500
+num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
@@ -24,7 +26,7 @@ elif location=='mac':
 	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
 	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='e100b960m1./'
+	checkpoint_dir='e100b960m0.9WN18filter/'
 
 model_name='modele'
 entity_id_map={}
@@ -79,8 +81,10 @@ def load_triple(file_path):
 		return np.asarray(temp,dtype=np.int32)
 
 train_triple=load_triple(train_path)
-'''test_triple=load_triple(test_path)
-valid_triple=load_triple(valid_path)'''
+test_triple=load_triple(test_path)
+valid_triple=load_triple(valid_path)
+triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
+triplets=triplets.tolist()
 
 
 n_triple=train_triple.shape[0]
@@ -185,8 +189,8 @@ rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
 
-score_hrt_pos=tf.matmul((input_h_pos+input_r_pos),input_t_pos,transpose_a=True)+\
-tf.matmul(input_h_pos,(input_t_pos-input_r_pos),transpose_a=True)
+score_hrt_pos=tf.reduce_sum((input_h_pos+input_r_pos)*input_t_pos,axis=1)+\
+tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -208,8 +212,8 @@ rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
 #score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
 #L1
-score_hrt_neg=tf.matmul((input_h_neg+input_r_neg),input_t_neg,transpose_a=True)+\
-tf.matmul(input_h_neg,(input_t_neg-input_r_neg),transpose_a=True)
+score_hrt_neg=tf.reduce_sum((input_h_neg+input_r_neg)*input_t_neg,axis=1)+\
+tf.reduce_sum(input_h_neg*(input_t_neg-input_r_neg),axis=1)
 
 
 loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
@@ -247,20 +251,22 @@ with tf.Session() as sess:
 		print('fail to restore')
 	n_epoch=0
 	n_iter=0
-	total=math.ceil(n_triple/n_batch)*num_epoch
+	total=math.ceil(n_triple/n_batch)*num_epoch*2
 
 
-	while n_epoch<num_epoch:
+	while n_epoch<num_epoch*2:
 		n_epoch+=1
+		if n_epoch>num_epoch:
+			lr=lr2
 		n_idx=0
 		while(n_idx<n_triple):
 			n_iter+=1
 			if n_idx+n_batch>n_triple:
 				input_pos=np.concatenate([train_triple[n_idx:n_idx+n_batch],train_triple[0:n_idx+n_batch-n_triple]],axis=0)
-				train_triple=train_triple.tolist()
+				'''train_triple=train_triple.tolist()
 				random.shuffle(train_triple)
 				train_triple=np.asarray(train_triple,dtype=np.int32)
-				print("shuffled")
+				print("shuffled")'''
 			else:
 				input_pos=train_triple[n_idx:n_idx+n_batch]
 			#input_pos=np.asarray(input_pos,dtype=np.int32)
@@ -273,12 +279,18 @@ with tf.Session() as sess:
 					'''temp_ent=random.sample(entityID_list,1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])'''
 					temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
+					while [int(temp_ent),temp[idx][1],temp[idx][2]] in triplets:
+						#print('existed triplet',idx)
+						temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
 					'''temp_ent=random.sample(entityID_list,1)[0]	
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])'''
 					temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
-					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])		
+					while [temp[idx][0],int(temp_ent),temp[idx][2]] in triplets:
+						#print('existed triplet',idx)
+						temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
+					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])	
 			input_neg=np.asarray(input_neg,dtype=np.int32)
 			#print(input_neg)
 			hp,tp,rp,hn,tn,rn,ez,rz,loss_iter,_=sess.run([hpn,tpn,\
@@ -322,8 +334,7 @@ with tf.Session() as sess:
 				norm_rlist.append(0)
 			sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
 			if n_iter%100==0:
-
-				print(n_iter,'/',total)
+				print(n_iter,'/',total,' learning rate:',lr)
 				print(loss_sum)
 				loss_sum=0
 				saved_path=saver.save(sess,checkpoint_dir+model_name)
