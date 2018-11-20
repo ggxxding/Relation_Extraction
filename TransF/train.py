@@ -3,14 +3,14 @@ import numpy as np
 import csv
 import math
 import random
-embed_dim=100
+embed_dim=50
 n_batch=960
-margin=0.9
+margin=2.0
 lr1=0.01
 lr2=0.0001
 lr=lr1
 regularizer_weight=0
-num_epoch=500 #500 0.01 + 500 0.0001
+num_epoch=400 #500 0.01 + 500 0.0001
 location='mac'
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
@@ -25,8 +25,8 @@ elif location=='local':
 elif location=='mac':
 	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
-	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='e100b960m0.9WN18filter/'
+	valid_path='../data/WN18/train2id.txt'
+	checkpoint_dir='e50b960m2.0WN18raw/'
 
 model_name='modele'
 entity_id_map={}
@@ -186,11 +186,11 @@ rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #h_pos=tf.matmul(mrh_pos,input_h_pos)
 #t_pos=tf.matmul(mrt_pos,input_t_pos)
 
-#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+score_hrt_pos1=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
 
 score_hrt_pos=tf.reduce_sum((input_h_pos+input_r_pos)*input_t_pos,axis=1)+\
-tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)
+tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)-0.5*score_hrt_pos1
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -210,13 +210,13 @@ rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
-#score_hrt_neg=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
+score_hrt_neg1=tf.norm(input_h_neg+input_r_neg-input_t_neg,ord=1,axis=1)
 #L1
 score_hrt_neg=tf.reduce_sum((input_h_neg+input_r_neg)*input_t_neg,axis=1)+\
-tf.reduce_sum(input_h_neg*(input_t_neg-input_r_neg),axis=1)
+tf.reduce_sum(input_h_neg*(input_t_neg-input_r_neg),axis=1)-0.5*score_hrt_neg1
 
 
-loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
+loss=tf.reduce_sum(tf.nn.relu(margin_-score_hrt_pos+score_hrt_neg))
 #+regularizer_weight*regularizer_loss
 optimizer=tf.train.GradientDescentOptimizer(learning_rate=lr)
 grads=optimizer.compute_gradients(loss,trainable)
@@ -279,17 +279,17 @@ with tf.Session() as sess:
 					'''temp_ent=random.sample(entityID_list,1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])'''
 					temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
-					while [int(temp_ent),temp[idx][1],temp[idx][2]] in triplets:
+					'''while [int(temp_ent),temp[idx][1],temp[idx][2]] in triplets:
 						#print('existed triplet',idx)
-						temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
+						temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]'''
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
 					'''temp_ent=random.sample(entityID_list,1)[0]	
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])'''
 					temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
-					while [temp[idx][0],int(temp_ent),temp[idx][2]] in triplets:
+					'''while [temp[idx][0],int(temp_ent),temp[idx][2]] in triplets:
 						#print('existed triplet',idx)
-						temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
+						temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]'''
 					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])	
 			input_neg=np.asarray(input_neg,dtype=np.int32)
 			#print(input_neg)
@@ -334,6 +334,7 @@ with tf.Session() as sess:
 				norm_rlist.append(0)
 			sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
 			if n_iter%100==0:
+
 				print(n_iter,'/',total,' learning rate:',lr)
 				print(loss_sum)
 				loss_sum=0

@@ -3,7 +3,7 @@ import numpy as np
 import csv
 import math
 import random
-embed_dim=100
+embed_dim=50
 n_batch=1	#needn't change it
 num_epoch=1	#needn't change it
 location='mac'
@@ -14,9 +14,9 @@ elif location=='local':
 	test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	test_path='../data/WN18/test.txt'
-	checkpoint_dir='e100b960m0.9WN18filter/'
-model_name='modeld'
+	test_path='../data/WN18/test2id.txt'
+	checkpoint_dir='e50b960m2.0WN18raw/'
+model_name='modele'
 entity_id_map={}
 id_entity_map={}
 relation_id_map={}
@@ -53,12 +53,22 @@ print("entity number:%d,relation number:%d"%(n_entity,n_relation))
 entityID_list=list(entity_id_map.values())
 relationID_list=list(relation_id_map.values())
 
-def load_triple(file_path):
+def load_triple_file(file_path):
 	with open(file_path,'r',encoding='utf-8') as f_triple:
 		return np.asarray([[entity_id_map[x.strip().split('\t')[0]],
 			entity_id_map[x.strip().split('\t')[1]],
 			relation_id_map[x.strip().split('\t')[2]]] for x in f_triple.readlines()],
 			dtype=np.int32)
+
+def load_triple(file_path):
+	temp=[]
+	with open(file_path,'r',encoding='utf-8') as f_triple:
+		for x in f_triple.readlines():
+			if len(x.strip().split(' '))==3:
+				temp.append([x.strip().split(' ')[0],
+					x.strip().split(' ')[1],
+					x.strip().split(' ')[2]])
+		return np.asarray(temp,dtype=np.int32)
 test_triple=load_triple(test_path)
 
 
@@ -105,8 +115,11 @@ input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]
 #score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
 #L1
 
+score_hrt_pos1=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
+#L1
+
 score_hrt_pos=tf.reduce_sum((input_h_pos+input_r_pos)*input_t_pos,axis=1)+\
-tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)
+tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)-score_hrt_pos1
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -155,7 +168,7 @@ with tf.Session() as sess:
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
-			scores.sort()
+			scores.sort(reverse=True)
 			rank_list.append(scores.index(temp))
 			print(scores.index(temp))
 
@@ -169,7 +182,7 @@ with tf.Session() as sess:
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
 			temp=scores[index]
-			scores.sort()
+			scores.sort(reverse=True)
 
 			rank_list.append(scores.index(temp))
 			print(scores.index(temp))

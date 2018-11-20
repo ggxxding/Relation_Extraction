@@ -22,7 +22,7 @@ elif location=='local':
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
 	train_path='../data/WN18/train.txt'
-	checkpoint_dir='../data/WN18/saver3/'
+	checkpoint_dir='saver3/'
 
 model_name='modele'
 entity_id_map={}

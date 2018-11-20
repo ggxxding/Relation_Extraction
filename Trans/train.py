@@ -5,12 +5,13 @@ import math
 import random
 embed_dim=50
 n_batch=960
-margin=4.
-lr=0.01
+margin=0.25
+lr1=0.01
+lr2=0.0001
+lr=lr1
 regularizer_weight=0
-num_epoch=400
+num_epoch=50 #500 0.01 + 500 0.0001
 location='mac'
-
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -20,10 +21,12 @@ if location=='104':
 	checkpoint_dir='/data/Relation_Extraction/data/WN18/saver/'
 elif location=='local':
 	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
-	checkpoint_dir='/saver/'
+	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	train_path='../data/WN18/train.txt'
-	checkpoint_dir='e50b960m2l2/'
+	train_path='../data/WN18/train2id.txt'
+	test_path='../data/WN18/test2id.txt'
+	valid_path='../data/WN18/valid2id.txt'
+	checkpoint_dir='e50b960m0.25WN18raw/'
 
 model_name='modele'
 entity_id_map={}
@@ -60,17 +63,87 @@ print("entity number:%d,relation number:%d"%(n_entity,n_relation))
 #print(entity_id_map)
 entityID_list=list(entity_id_map.values())
 relationID_list=list(relation_id_map.values())
-
-def load_triple(file_path):
+def load_triple_file(file_path):
 	with open(file_path,'r',encoding='utf-8') as f_triple:
 		return np.asarray([[entity_id_map[x.strip().split('\t')[0]],
 			entity_id_map[x.strip().split('\t')[1]],
 			relation_id_map[x.strip().split('\t')[2]]] for x in f_triple.readlines()],
 			dtype=np.int32)
+
+def load_triple(file_path):
+	temp=[]
+	with open(file_path,'r',encoding='utf-8') as f_triple:
+		for x in f_triple.readlines():
+			if len(x.strip().split(' '))==3:
+				temp.append([x.strip().split(' ')[0],
+					x.strip().split(' ')[1],
+					x.strip().split(' ')[2]])
+		return np.asarray(temp,dtype=np.int32)
+
 train_triple=load_triple(train_path)
+test_triple=load_triple(test_path)
+valid_triple=load_triple(valid_path)
+triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
+triplets=triplets.tolist()
+
 
 n_triple=train_triple.shape[0]
 print("train triplets:%d"%(n_triple))
+Ehr=[]
+Etr=[]
+with open("../data/WN18/ehr.txt",'r') as f:
+	idx=-1
+	for x in f.readlines():
+		if len(x.strip().split(' '))>0:
+			Ehr.append([])
+			idx+=1
+			for i in x.strip().split(' '):
+				Ehr[idx].append(i)
+with open("../data/WN18/etr.txt",'r') as f:
+	idx=-1
+	for x in f.readlines():
+		if len(x.strip().split(' '))>0:
+			Etr.append([])
+			idx+=1
+			for i in x.strip().split(' '):
+				Etr[idx].append(i)
+
+
+
+'''
+for i in range(n_relation):
+	Ehr.append([])
+	Etr.append([])
+for i in train_triple:
+	if i[0] not in Ehr[i[2]]:
+		Ehr[i[2]].append(i[0])
+	if i[1] not in Ehr[i[2]]:
+		Etr[i[2]].append(i[1])
+
+for i in test_triple:
+	if i[0] not in Ehr[i[2]]:
+		Ehr[i[2]].append(i[0])
+	if i[1] not in Ehr[i[2]]:
+		Etr[i[2]].append(i[1])
+
+for i in valid_triple:
+	if i[0] not in Ehr[i[2]]:
+		Ehr[i[2]].append(i[0])
+	if i[1] not in Ehr[i[2]]:
+		Etr[i[2]].append(i[1])
+for i in range(len(Ehr)):
+	Ehr[i].sort()
+	Etr[i].sort()
+with open("ehr.txt",'w') as f:
+	for lines in Ehr:
+		for i in lines:
+			f.write(str(i)+' ')
+		f.write('\n')
+with open("etr.txt",'w') as f:
+	for lines in Etr:
+		for i in lines:
+			f.write(str(i)+' ')
+		f.write('\n')'''
 
 #tf.placeholder()
 trainable=[] #可训练参数列表
@@ -95,14 +168,10 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
 
-mh=tf.get_variable("m_h",[1,embed_dim,embed_dim],\
-	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
-trainable.append(mh)
-
-mt=tf.get_variable("m_t",[1,embed_dim,embed_dim],\
-	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
-trainable.append(mt)
-
+proj_matrix_h=tf.get_variable("proj_matrix_h",[n_relation,embed_dim,embed_dim],initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=347))
+proj_matrix_t=tf.get_variable("proj_matrix_t",[n_relation,embed_dim,embed_dim],initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=348))
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -116,25 +185,17 @@ tpn=tf.reshape(tf.norm(input_t_pos,axis=1,ord=2),[-1])
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+input_mh_pos=tf.reshape(tf.nn.embedding_lookup(proj_matrix_h,train_input_pos[:,2]),[n_batch,embed_dim,embed_dim])
+input_mt_pos=tf.reshape(tf.nn.embedding_lookup(proj_matrix_t,train_input_pos[:,2]),[n_batch,embed_dim,embed_dim])
 
-#mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
-#mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
-#h_pos=tf.matmul(mrh_pos,input_h_pos)
-#t_pos=tf.matmul(mrt_pos,input_t_pos)
-#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
-mh_h_pos=tf.matmul(tf.tile(mh,[n_batch,1,1]),input_h_pos)
-mh_h_pos_norm=tf.norm(mh_h_pos,axis=1)
-mh_h_pos_reshape=tf.reshape(mh_h_pos_norm,[n_batch,1,-1])
-mh_h_pos_tile=tf.tile(mh_h_pos_reshape,[1,50,1])
-mhh_pos=tf.where(mh_h_pos_tile>1,tf.nn.l2_normalize(mh_h_pos,axis=1),mh_h_pos)
-#mhh_pos=mh_h_pos
+score_hrt_pos=tf.norm(tf.nn.l2_normalize(tf.matmul(input_mh_pos,input_h_pos),axis=1)+\
+	input_r_pos-\
+	tf.nn.l2_normalize(tf.matmul(input_mt_pos,input_t_pos),axis=1),ord=1,axis=1)
 
-mt_t_pos=tf.matmul(tf.tile(mt,[n_batch,1,1]),input_t_pos)
-mtt_pos=tf.where(tf.tile(tf.reshape(tf.norm(mt_t_pos,axis=1),[n_batch,1,-1]),[1,50,1])>1,tf.nn.l2_normalize(mt_t_pos,axis=1),mt_t_pos)
-#mtt_pos=mt_t_pos
-score_hrt_pos=tf.norm(mhh_pos+input_r_pos-mtt_pos,ord=1,axis=1)
+#L1
 
-
+#score_hrt_pos=tf.reduce_sum((input_h_pos+input_r_pos)*input_t_pos,axis=1)+\
+#tf.reduce_sum(input_h_pos*(input_t_pos-input_r_pos),axis=1)
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
@@ -147,32 +208,19 @@ tnn=tf.reshape(tf.norm(input_t_neg,axis=1,ord=2),[-1])
 input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[n_batch,embed_dim,-1])
 rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 #rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-#mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
-#mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
-#h_neg=tf.matmul(mrh_neg,input_h_neg)
-#t_neg=tf.matmul(mrt_neg,input_t_neg)
+input_mh_neg=tf.reshape(tf.nn.embedding_lookup(proj_matrix_h,train_input_neg[:,2]),[n_batch,embed_dim,embed_dim])
+input_mt_neg=tf.reshape(tf.nn.embedding_lookup(proj_matrix_t,train_input_neg[:,2]),[n_batch,embed_dim,embed_dim])
+
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
 
-mh_h_neg=tf.matmul(tf.tile(mh,[n_batch,1,1]),input_h_neg)
-mh_h_neg_norm=tf.norm(mh_h_neg,axis=1)
-mh_h_neg_reshape=tf.reshape(mh_h_neg_norm,[n_batch,1,-1])
-mh_h_neg_tile=tf.tile(mh_h_neg_reshape,[1,50,1])
-mhh_neg=tf.where(mh_h_neg_tile>1,tf.nn.l2_normalize(mh_h_neg,axis=1),mh_h_neg)
-#mhh_neg=mh_h_neg
+score_hrt_neg=tf.norm(tf.nn.l2_normalize(tf.matmul(input_mh_neg,input_h_neg),axis=1)+\
+	input_r_neg-\
+	tf.nn.l2_normalize(tf.matmul(input_mt_neg,input_t_neg),axis=1),ord=1,axis=1)
+#L1
+#score_hrt_neg=tf.reduce_sum((input_h_neg+input_r_neg)*input_t_neg,axis=1)+\
+#tf.reduce_sum(input_h_neg*(input_t_neg-input_r_neg),axis=1)
 
-mt_t_neg=tf.matmul(tf.tile(mt,[n_batch,1,1]),input_t_neg)
-mt_t_neg_norm=tf.norm(mt_t_neg,axis=1)
-mt_t_neg_reshape=tf.reshape(mt_t_neg_norm,[n_batch,1,-1])
-mt_t_neg_tile=tf.tile(mt_t_neg_reshape,[1,50,1])
-mtt_neg=tf.where(mt_t_neg_tile>1,tf.nn.l2_normalize(mt_t_neg,axis=1),mt_t_neg)
-#mtt_neg=mt_t_neg
-
-score_hrt_neg=tf.norm(mhh_neg+input_r_neg-mtt_neg,ord=1,axis=1)
-
-regularizer_loss=tf.reduce_sum(tf.abs(input_h_pos))+tf.reduce_sum(tf.abs(input_t_pos))+\
-tf.reduce_sum(tf.abs(input_r_pos))+tf.reduce_sum(tf.abs(input_h_neg))+\
-tf.reduce_sum(tf.abs(input_t_neg))+tf.reduce_sum(tf.abs(input_r_neg))
 
 loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
 #+regularizer_weight*regularizer_loss
@@ -209,18 +257,22 @@ with tf.Session() as sess:
 		print('fail to restore')
 	n_epoch=0
 	n_iter=0
-	total=math.ceil(n_triple/n_batch)*num_epoch
-	while n_epoch<num_epoch:
+	total=math.ceil(n_triple/n_batch)*num_epoch*2
+
+
+	while n_epoch<num_epoch*2:
 		n_epoch+=1
+		if n_epoch>num_epoch:
+			lr=lr2
 		n_idx=0
 		while(n_idx<n_triple):
 			n_iter+=1
 			if n_idx+n_batch>n_triple:
 				input_pos=np.concatenate([train_triple[n_idx:n_idx+n_batch],train_triple[0:n_idx+n_batch-n_triple]],axis=0)
-				'''train_triple=train_triple.tolist()
+				train_triple=train_triple.tolist()
 				random.shuffle(train_triple)
 				train_triple=np.asarray(train_triple,dtype=np.int32)
-				print("shuffled")'''
+				print("shuffled")
 			else:
 				input_pos=train_triple[n_idx:n_idx+n_batch]
 			#input_pos=np.asarray(input_pos,dtype=np.int32)
@@ -230,11 +282,21 @@ with tf.Session() as sess:
 			input_neg=[]
 			for idx in range(input_pos.shape[0]):
 				if np.random.uniform(-1,1) > 0:
-					temp_ent=random.sample(entityID_list,1)[0]			
+					'''temp_ent=random.sample(entityID_list,1)[0]			
+					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])'''
+					temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
+					'''while [int(temp_ent),temp[idx][1],temp[idx][2]] in triplets:
+						#print('existed triplet',idx)
+						temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]'''
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 				else:
-					temp_ent=random.sample(entityID_list,1)[0]	
-					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
+					'''temp_ent=random.sample(entityID_list,1)[0]	
+					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])'''
+					temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
+					'''while [temp[idx][0],int(temp_ent),temp[idx][2]] in triplets:
+						#print('existed triplet',idx)
+						temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]'''
+					input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])	
 			input_neg=np.asarray(input_neg,dtype=np.int32)
 			#print(input_neg)
 			hp,tp,rp,hn,tn,rn,ez,rz,loss_iter,_=sess.run([hpn,tpn,\
@@ -244,14 +306,14 @@ with tf.Session() as sess:
 
 			#print(hp)
 			#hp-rn are the norms(shape:[n_batch])
-			hp=(hp>1)*input_pos[:,0]
+			'''hp=(hp>1)*input_pos[:,0]
 			tp=(tp>1)*input_pos[:,1]
 			rp=(rp>1)*input_pos[:,2]
 			hn=(hn>1)*input_neg[:,0]
 			tn=(tn>1)*input_neg[:,1]
 			rn=(rn>1)*input_neg[:,2]# id of the vectors which need to be normalized
 			#print(hp)
-			
+
 			norm_elist=[]
 			norm_rlist=[]
 			for i in hp:
@@ -276,12 +338,9 @@ with tf.Session() as sess:
 				norm_elist.append(0)
 			if rz>1:
 				norm_rlist.append(0)
-			#sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
-			sess.run(updateR,{idx_r:norm_rlist})
-
+			sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})'''
 			if n_iter%100==0:
-				print(np.linalg.norm(mh.eval()))
-				print(n_iter,'/',total)
+				print(n_iter,'/',total,' learning rate:',lr)
 				print(loss_sum)
 				loss_sum=0
 				saved_path=saver.save(sess,checkpoint_dir+model_name)

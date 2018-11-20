@@ -14,8 +14,8 @@ elif location=='local':
 	test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	test_path='../data/WN18/test.txt'
-	checkpoint_dir='e50b960m2l2/'
+	test_path='../data/WN18/test2id.txt'
+	checkpoint_dir='e50b960m0.25WN18raw/'
 model_name='modeld'
 entity_id_map={}
 id_entity_map={}
@@ -53,12 +53,22 @@ print("entity number:%d,relation number:%d"%(n_entity,n_relation))
 entityID_list=list(entity_id_map.values())
 relationID_list=list(relation_id_map.values())
 
-def load_triple(file_path):
+def load_triple_file(file_path):
 	with open(file_path,'r',encoding='utf-8') as f_triple:
 		return np.asarray([[entity_id_map[x.strip().split('\t')[0]],
 			entity_id_map[x.strip().split('\t')[1]],
 			relation_id_map[x.strip().split('\t')[2]]] for x in f_triple.readlines()],
 			dtype=np.int32)
+
+def load_triple(file_path):
+	temp=[]
+	with open(file_path,'r',encoding='utf-8') as f_triple:
+		for x in f_triple.readlines():
+			if len(x.strip().split(' '))==3:
+				temp.append([x.strip().split(' ')[0],
+					x.strip().split(' ')[1],
+					x.strip().split(' ')[2]])
+		return np.asarray(temp,dtype=np.int32)
 test_triple=load_triple(test_path)
 
 
@@ -88,42 +98,29 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    	maxval=bound,seed=348))'''
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
-
-mh=tf.get_variable("m_h",[1,embed_dim,embed_dim],\
-	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
-trainable.append(mh)
-mt=tf.get_variable("m_t",[1,embed_dim,embed_dim],\
-	initializer=tf.random_uniform_initializer(minval=-bound,maxval=bound,seed=346))
-trainable.append(mt)
+proj_matrix_h=tf.get_variable("proj_matrix_h",[n_relation,embed_dim,embed_dim],initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=347))
+proj_matrix_t=tf.get_variable("proj_matrix_t",[n_relation,embed_dim,embed_dim],initializer=tf.random_uniform_initializer(minval=-bound, \
+                                                   	maxval=bound,seed=348))
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
+
 input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_entity,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+hpn=tf.reshape(tf.norm(input_h_pos,axis=1,ord=2),[-1]) #shape=[n_batch,1] - [n_batch]
 #hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
 input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_entity,embed_dim,-1])
+tpn=tf.reshape(tf.norm(input_t_pos,axis=1,ord=2),[-1])
 #tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_entity,embed_dim,-1])
+rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
+input_mh_pos=tf.reshape(tf.nn.embedding_lookup(proj_matrix_h,train_input_pos[:,2]),[n_entity,embed_dim,embed_dim])
+input_mt_pos=tf.reshape(tf.nn.embedding_lookup(proj_matrix_t,train_input_pos[:,2]),[n_entity,embed_dim,embed_dim])
 
-#mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
-#mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
-#h_pos=tf.matmul(mrh_pos,input_h_pos)
-#t_pos=tf.matmul(mrt_pos,input_t_pos)
-#score_hrt_pos=tf.norm(input_h_pos+input_r_pos-input_t_pos,ord=1,axis=1)
-#L1
-mh_h_pos=tf.matmul(tf.tile(mh,[n_entity,1,1]),input_h_pos)
-mh_h_pos_norm=tf.norm(mh_h_pos,axis=1)
-mh_h_pos_reshape=tf.reshape(mh_h_pos_norm,[n_entity,1,-1])
-mh_h_pos_tile=tf.tile(mh_h_pos_reshape,[1,50,1])
-#mhh_pos=tf.where(mh_h_pos_tile>1,tf.nn.l2_normalize(mh_h_pos,axis=1),mh_h_pos)
-mhh_pos=mh_h_pos
-
-mt_t_pos=tf.matmul(tf.tile(mt,[n_entity,1,1]),input_t_pos)
-#mtt_pos=tf.where(tf.tile(tf.reshape(tf.norm(mt_t_pos,axis=1),[n_batch,1,-1]),[1,50,1])>1,tf.nn.l2_normalize(mt_t_pos,axis=1),mt_t_pos)
-mtt_pos=mt_t_pos
-score_hrt_pos=tf.norm(mhh_pos+input_r_pos-mtt_pos,ord=2,axis=1)
-
-
+score_hrt_pos=tf.norm(tf.nn.l2_normalize(tf.matmul(input_mh_pos,input_h_pos),axis=1)+\
+	input_r_pos-\
+	tf.nn.l2_normalize(tf.matmul(input_mt_pos,input_t_pos),axis=1),ord=1,axis=1)
 
 train_input_neg=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
