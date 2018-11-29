@@ -3,6 +3,7 @@ import numpy as np
 import csv
 import math
 import random
+import copy
 embed_dim=50
 n_batch=1	#needn't change it
 num_epoch=1	#needn't change it
@@ -14,8 +15,10 @@ elif location=='local':
 	test_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/test.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
+	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
-	checkpoint_dir='e50b960m2.0WN18raw/'
+	valid_path='../data/WN18/valid2id.txt'
+	checkpoint_dir='e50b960m0.9WN18/'
 model_name='modele'
 entity_id_map={}
 id_entity_map={}
@@ -33,7 +36,7 @@ for lines in csv_file:
 	line=lines[0].split('\t')
 	n_entity+=1
 	entity_id_map[line[0]]=line[1]
-	#id_entity_map[line[1]]=line[0]
+	id_entity_map[line[1]]=line[0]
 
 if location=='104':
 	dir='/data/Relation_Extraction/data/WN18/relation2id.txt'
@@ -47,7 +50,7 @@ for lines in csv_file:
 	line=lines[0].split('\t')
 	n_relation+=1
 	relation_id_map[line[0]]=line[1]
-	#id_relation_map[line[1]]=line[0]
+	id_relation_map[line[1]]=line[0]
 print("entity number:%d,relation number:%d"%(n_entity,n_relation))
 #print(entity_id_map)
 entityID_list=list(entity_id_map.values())
@@ -69,13 +72,38 @@ def load_triple(file_path):
 					x.strip().split(' ')[1],
 					x.strip().split(' ')[2]])
 		return np.asarray(temp,dtype=np.int32)
+train_triple=load_triple(train_path)
 test_triple=load_triple(test_path)
-
+valid_triple=load_triple(valid_path)
+triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
+triplets=triplets.tolist()
 
 
 n_triple=test_triple.shape[0]
 print("test triplets:%d"%(n_triple))
 
+filterh=[]
+filtert=[]
+with open("../filterhWN18.txt",'r') as f:
+	idx=-1
+	for x in f.readlines():
+		if len(x.strip().split(' '))>0:
+			filterh.append([])
+			idx+=1
+			for i in x.strip().split(' '):
+				filterh[idx].append(int(i))
+		else:
+			print('length:0')
+with open("../filtertWN18.txt",'r') as f:
+	idx=-1
+	for x in f.readlines():
+		if len(x.strip().split(' '))>0:
+			filtert.append([])
+			idx+=1
+			for i in x.strip().split(' '):
+				filtert[idx].append(int(i))
+		else:
+			print('length:0')
 #tf.placeholder()
 trainable=[] #可训练参数列表
 
@@ -101,11 +129,11 @@ trainable.append(rel_embedding)
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 #(nbatch,1)
-input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[n_entity,embed_dim,-1])#(n_batch,1) (n_batch,dim)
+input_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,0]),[-1,embed_dim,1])#(n_batch,1) (n_batch,dim)
 #hp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,0]),[n_batch,embed_dim,-1])
-input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[n_entity,embed_dim,-1])
+input_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_embedding,train_input_pos[:,1]),[-1,embed_dim,1])
 #tp_pos=tf.reshape(tf.nn.embedding_lookup(ent_projecting,train_input_pos[:,1]),[n_batch,embed_dim,-1])
-input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[n_entity,embed_dim,-1])
+input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[-1,embed_dim,1])
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
 
 #mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
@@ -155,7 +183,8 @@ with tf.Session() as sess:
 	while n_epoch<num_epoch:
 		n_epoch+=1
 		n_idx=0
-
+		h_count=0
+		t_count=0
 		while(n_idx<n_triple):
 			input_pos=test_triple[n_idx:n_idx+1]
 			n_idx+=1
@@ -163,29 +192,80 @@ with tf.Session() as sess:
 			#head
 			index=input_pos[0][0]
 			input_list=[]
+			temp_idx=0
+			count=0
 			for idx in range(n_entity):
-				input_list.append([idx,input_pos[0][1],input_pos[0][2]])
+				if idx not in filterh[n_idx-1]:
+					input_list.append([idx,input_pos[0][1],input_pos[0][2]])
+					count+=1
+				elif idx==index:
+					input_list.append([idx,input_pos[0][1],input_pos[0][2]])
+					temp_idx=count
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
-			temp=scores[index]
+			temp=scores[temp_idx]
+			scores_unsort=copy.deepcopy(scores)
 			scores.sort(reverse=True)
 			rank_list.append(scores.index(temp))
-			print(scores.index(temp))
+			#print('h',scores.index(temp))
 
+			if scores.index(temp)<10:
+				h_count+=1
+				temp_trip=[]
+
+				trip_list=[]
+				for i in scores[:10]:
+					trip_list.append(scores_unsort.index(i))
+				print(trip_list)
+
+				
+				for i in  trip_list:
+					temp_trip.append(id_entity_map[str(input_list[i][0])]
+						)
+				print(id_entity_map[str(input_list[i][1])],id_relation_map[str(input_list[i][2])])
+				if h_count<10:
+					print(temp_trip,scores.index(temp),'h')
 
 			#tail
 			
 			index=input_pos[0][1]
 			input_list=[]
+			count=0
+			temp_idx=0
 			for idx in range(n_entity):
-				input_list.append([input_pos[0][0],idx,input_pos[0][2]])
+				if idx not in filtert[n_idx-1]:
+					input_list.append([input_pos[0][0],idx,input_pos[0][2]])
+					count+=1
+				elif idx==index:
+					input_list.append([input_pos[0][0],idx,input_pos[0][2]])
+					temp_idx=count
+
 			scores=sess.run(score_hrt_pos,{train_input_pos:input_list})
 			scores=scores.reshape(-1).tolist()
-			temp=scores[index]
+			temp=scores[temp_idx]
+			scores_unsort=copy.deepcopy(scores)
 			scores.sort(reverse=True)
-
 			rank_list.append(scores.index(temp))
-			print(scores.index(temp))
+			#print('t',scores.index(temp))
+
+			if scores.index(temp)<10:
+				t_count+=1
+
+				temp_trip=[]
+				trip_list=[]
+				for i in scores[:10]:
+					trip_list.append(scores_unsort.index(i))
+				print(trip_list)
+				for i in  trip_list:
+					temp_trip.append(
+						id_entity_map[str(input_list[i][1])]
+						)
+				print(id_entity_map[str(input_list[i][0])],id_relation_map[str(input_list[i][2])])
+				if t_count<10:
+					print(temp_trip,scores.index(temp),'t')
+					
+			if h_count>4 and t_count>4:
+				break
 
 			if n_idx%100==0:
 				print(n_idx,'/',n_triple)

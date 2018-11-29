@@ -7,7 +7,7 @@ embed_dim=50
 n_batch=200
 margin=1.
 lr1=0.0001
-lr2=0.00001
+lr2=0.0001
 lr=lr1
 regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
@@ -216,7 +216,8 @@ score_hrt_neg=tf.norm(tf.nn.l2_normalize(h_neg,axis=1)+input_r_neg-tf.nn.l2_norm
 
 loss=tf.reduce_sum(tf.nn.relu(score_hrt_pos-score_hrt_neg+margin_))
 #+regularizer_weight*regularizer_loss
-optimizer=tf.train.GradientDescentOptimizer(learning_rate=lr)
+#optimizer=tf.train.GradientDescentOptimizer(learning_rate=lr)
+optimizer=tf.train.AdadeltaOptimizer(learning_rate=lr)
 grads=optimizer.compute_gradients(loss,trainable)
 op_train=optimizer.apply_gradients(grads)
 
