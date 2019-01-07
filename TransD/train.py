@@ -6,7 +6,7 @@ import random
 embed_dim=50
 n_batch=200
 margin=1.
-lr1=0.0001
+lr1=0.01
 lr2=0.0001
 lr=lr1
 regularizer_weight=0
@@ -83,8 +83,17 @@ def load_triple(file_path):
 train_triple=load_triple(train_path)
 test_triple=load_triple(test_path)
 valid_triple=load_triple(valid_path)
-#triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
+triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
 #triplets=triplets.tolist()
+
+bernA=np.zeros(shape=[n_relation,n_entity,2],dtype=np.float64)
+
+for triplet in triplets:
+	bernA[triplet[2]][triplet[0]][0]+=1
+	bernA[triplet[2]][triplet[1]][1]+=1
+bernB=bernA>0
+
+bern=np.sum(bernA,axis=1)/np.sum(bernB,axis=1)
 
 
 n_triple=train_triple.shape[0]
@@ -274,7 +283,7 @@ with tf.Session() as sess:
 			temp=input_pos.tolist()
 			input_neg=[]
 			for idx in range(input_pos.shape[0]):
-				if np.random.uniform(-1,1) > 0:
+				if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
 					'''temp_ent=random.sample(entityID_list,1)[0]			
 					input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])'''
 					temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]

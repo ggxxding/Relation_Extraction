@@ -6,9 +6,9 @@ import random
 import copy
 embed_dim=50
 n_batch=960
-margin=1.5
-weight=0.8
-weight_diag=0.5
+margin=0.5
+weight=0.4
+weight_diag=0.3
 lr1=0.01
 lr2=0.0001
 lr=lr1
@@ -90,6 +90,8 @@ test_triple=load_triple(test_path)
 valid_triple=load_triple(valid_path)
 triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
 triplets=triplets.tolist()
+
+
 
 
 
@@ -310,7 +312,7 @@ with tf.Session() as sess:
 				input_neg=np.asarray(input_neg,dtype=np.int32)
 				#print(input_neg)
 				hp,tp,rp,hn,tn,rn,ez,rz,loss_iter,_,diag_pos1=sess.run([hpn,tpn,\
-					rpn,hnn,tnn,rnn,eZeroNorm,rZeroNorm,loss,op_train,rel_pos],{train_input_pos:input_pos,train_input_neg:input_neg})
+					rpn,hnn,tnn,rnn,eZeroNorm,rZeroNorm,loss,op_train,hp_],{train_input_pos:input_pos,train_input_neg:input_neg})
 				loss_sum+=loss_iter
 
 
@@ -347,7 +349,7 @@ with tf.Session() as sess:
 					norm_rlist.append(0)
 				sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})'''
 				if n_iter%100==0:
-					print(diag_pos1)
+					print(np.linalg.norm(diag_pos1,axis=1))
 					print(hp[:10])
 					print(n_iter,'/',total,' learning rate:',lr)
 					print(loss_sum)
