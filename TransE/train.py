@@ -4,10 +4,10 @@ import csv
 import math
 import random
 import copy
-embed_dim=200
+embed_dim=70
 n_batch=960
-margin=0.1
-weight=0.05
+margin=0.5
+weight=0.1
 weight_diag=0.005
 lr1=0.01
 lr2=0.0001
@@ -15,8 +15,8 @@ lr=lr1
 regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
-is_train=0
-use_filter=0
+is_train=1
+use_filter=1
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -28,10 +28,10 @@ elif location=='local':
 	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	train_path='../data/FB15k/train2id.txt'
-	test_path='../data/FB15k/test2id.txt'
-	valid_path='../data/FB15k/valid2id.txt'
-	checkpoint_dir='666e150b960m0.1FB15k/'
+	train_path='../data/WN18/train2id.txt'
+	test_path='../data/WN18/test2id.txt'
+	valid_path='../data/WN18/valid2id.txt'
+	checkpoint_dir='666e70b1440m0.7WN18L2/'
 
 model_name='modele'
 entity_id_map={}
@@ -43,7 +43,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'
 elif location=='mac':
-	dir='../data/FB15k/entity2id.txt'
+	dir='../data/WN18/entity2id.txt'
 csv_file=csv.reader(open(dir))
 n_entity=0
 for lines in csv_file:
@@ -56,7 +56,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'
 elif location=='mac':
-	dir='../data/FB15k/relation2id.txt'
+	dir='../data/WN18/relation2id.txt'
 csv_file=csv.reader(open(dir))
 n_relation=0
 for lines in csv_file:
@@ -117,8 +117,8 @@ def load_file(file_path):
 Ehr=load_file("../data/WN18/ehr.txt")
 Etr=load_file("../data/WN18/etr.txt")
 
-filterh=load_file("../filterhFB15k.txt")
-filtert=load_file("../filtertFB15k.txt")
+filterh=load_file("../filterhWN18.txt")
+filtert=load_file("../filtertWN18.txt")
 
 '''
 for i in range(n_relation):
@@ -179,9 +179,12 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    	maxval=bound,seed=348))'''
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
-ent_bias=tf.get_variable("ent_bias",[n_entity,embed_dim],
+ent_bias_h=tf.get_variable("ent_bias_h",[n_entity,embed_dim],
 	initializer=tf.random_uniform_initializer(minval=-bound/5,maxval=bound/5,seed=347))
-trainable.append(ent_bias)
+trainable.append(ent_bias_h)
+'''ent_bias_t=tf.get_variable("ent_bias_t",[n_entity,embed_dim],
+	initializer=tf.random_uniform_initializer(minval=-bound/5,maxval=bound/5,seed=348))
+trainable.append(ent_bias_t)'''
 
 train_input_pos=tf.placeholder(tf.int32,[None,3])
 
@@ -195,8 +198,10 @@ tpn=tf.reshape(tf.norm(input_t_pos,axis=1,ord=2),[-1])
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[-1,embed_dim,1])
 rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
-bias_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_pos[:,0]),[-1,embed_dim,1])
-bias_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_pos[:,1]),[-1,embed_dim,1])
+bias_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_pos[:,0]),[-1,embed_dim,1])
+bhpn=tf.reshape(tf.norm(bias_h_pos,axis=1,ord=2),[-1])
+bias_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_pos[:,1]),[-1,embed_dim,1])
+btpn=tf.reshape(tf.norm(bias_t_pos,axis=1,ord=2),[-1])
 #shape =[batch,dim,1]
 #mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
 #mrt_pos=tf.matmul(rp_pos,tp_pos,transpose_b=True)+tf.eye(embed_dim)
@@ -227,8 +232,10 @@ tnn=tf.reshape(tf.norm(input_t_neg,axis=1,ord=2),[-1])
 input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[-1,embed_dim,1])
 rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 #rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-bias_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_neg[:,0]),[-1,embed_dim,1])
-bias_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_neg[:,1]),[-1,embed_dim,1])
+bias_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_neg[:,0]),[-1,embed_dim,1])
+bhnn=tf.reshape(tf.norm(bias_h_neg,axis=1,ord=2),[-1])
+bias_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_neg[:,1]),[-1,embed_dim,1])
+btnn=tf.reshape(tf.norm(bias_t_neg,axis=1,ord=2),[-1])
 #mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
 #mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
 #h_neg=tf.matmul(mrh_neg,input_h_neg)
@@ -236,6 +243,8 @@ bias_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_neg[:,1]),[-1,
 
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
+bhZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_bias_h,0))
+#btZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_bias_t,0))
 
 score_hrt_neg1=tf.norm(input_h_neg+bias_h_neg+input_r_neg-bias_t_neg-input_t_neg,ord=2,axis=1)
 #L1
@@ -269,10 +278,16 @@ op_train=optimizer.apply_gradients(grads)
 
 idx_e=tf.placeholder(tf.int32,[None])
 idx_r=tf.placeholder(tf.int32,[None])
+idx_bh=tf.placeholder(tf.int32,[None])
+idx_bt=tf.placeholder(tf.int32,[None])
 normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e),axis=1)
 normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r),axis=1)
+normedBH=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias_h,idx_bh),axis=1)
+normedBT=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias_h,idx_bt),axis=1)
 updateE=tf.scatter_update(ent_embedding,idx_e,normedE)
 updateR=tf.scatter_update(rel_embedding,idx_r,normedR)
+updateBH=tf.scatter_update(ent_bias_h,idx_bh,normedBH)
+updateBT=tf.scatter_update(ent_bias_h,idx_bt,normedBT)
 
 saver=tf.train.Saver()
 
@@ -321,12 +336,14 @@ with tf.Session() as sess:
 					#if np.random.uniform(-1,1) > 0:
 					if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
 						temp_ent=random.sample(entityID_list,1)[0]			
-						input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
+
+						input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
 						'''temp_ent=random.sample(Ehr[input_pos[idx][2]],1)[0]
 						input_neg.append([temp_ent,temp[idx][1],temp[idx][2]])'''
 					else:
 						temp_ent=random.sample(entityID_list,1)[0]	
-						input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
+						
+						input_neg.append([int(temp_ent),temp[idx][1],temp[idx][2]])
 						'''temp_ent=random.sample(Etr[input_pos[idx][2]],1)[0]
 						input_neg.append([temp[idx][0],temp_ent,temp[idx][2]])'''
 
@@ -334,16 +351,24 @@ with tf.Session() as sess:
 				input_neg=np.asarray(input_neg,dtype=np.int32)
 
 				#print(input_neg)
-				hp,tp,rp,hn,tn,rn,ez,rz,loss_iter,_=sess.run([hpn,tpn,rpn,tnn,tnn,rnn,eZeroNorm,rZeroNorm,loss,op_train],{train_input_pos:input_pos,train_input_neg:input_neg})
+				hp,tp,rp,bhp,btp,hn,tn,rn,bhn,btn,ez,rz,bhz,loss_iter,_=sess.run([hpn,tpn,rpn,bhpn,btpn,\
+					tnn,tnn,rnn,bhnn,btnn,eZeroNorm,rZeroNorm,bhZeroNorm,loss,op_train],\
+					{train_input_pos:input_pos,train_input_neg:input_neg})
 				loss_sum+=loss_iter
 				hp=(hp>1)*input_pos[:,0]
 				tp=(tp>1)*input_pos[:,1]
 				rp=(rp>1)*input_pos[:,2]
+				bhp=(bhp>1)*input_pos[:,0]
+				btp=(btp>1)*input_pos[:,1]
 				hn=(hn>1)*input_neg[:,0]
 				tn=(tn>1)*input_neg[:,1]
 				rn=(rn>1)*input_neg[:,2]# id of the vectors which need to be normalized
+				bhn=(bhn>1)*input_pos[:,0]
+				btn=(btn>1)*input_pos[:,1]
 				norm_elist=[]
 				norm_rlist=[]
+				norm_bhlist=[]
+				norm_btlist=[]
 				for i in hp:
 					if i!=0:
 						norm_elist.append(i)
@@ -353,6 +378,12 @@ with tf.Session() as sess:
 				for i in rp:
 					if i!=0:
 						norm_rlist.append(i)
+				for i in bhp:
+					if i!=0:
+						norm_bhlist.append(i)
+				for i in btp:
+					if i!=0:
+						norm_btlist.append(i)
 				for i in hn:
 					if i!=0:
 						norm_elist.append(i)
@@ -362,13 +393,24 @@ with tf.Session() as sess:
 				for i in rn:
 					if i!=0:
 						norm_rlist.append(i)
+				for i in bhn:
+					if i!=0:
+						norm_bhlist.append(i)
+				for i in btn:
+					if i!=0:
+						norm_btlist.append(i)
 				if ez>1:
 					norm_elist.append(0)
 				if rz>1:
 					norm_rlist.append(0)
-				sess.run([updateE,updateR],{idx_e:norm_elist,idx_r:norm_rlist})
-				if n_iter%100==0:
+				if bhz>1:
+					norm_bhlist.appen(0)
+				'''if btz>1:
+					norm_btlist.append(0)'''
 
+				sess.run([updateE,updateR,updateBH,updateBT],{idx_e:norm_elist,idx_r:norm_rlist,\
+					idx_bh:norm_bhlist,idx_bt:norm_btlist})
+				if n_iter%100==0:
 					print(hp[:10])
 					print(n_iter,'/',total,' learning rate:',lr)
 					print(loss_sum)
