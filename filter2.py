@@ -26,6 +26,7 @@ elif location=='mac':
 	train_path='data/FB15k/train2id.txt'
 	test_path='data/FB15k/test2id.txt'
 	valid_path='data/FB15k/valid2id.txt'
+	relation_path='data/FB15k/1-1.txt'
 
 
 model_name='modele'
@@ -83,12 +84,13 @@ def load_triple(file_path):
 train_triple=load_triple(train_path)
 test_triple=load_triple(test_path)
 valid_triple=load_triple(valid_path)
+test2_triple=load_triple(relation_path)
 triplets=np.concatenate((train_triple.tolist(),test_triple.tolist(),valid_triple.tolist()),axis=0)
 #triplets=triplets.tolist()
 filterh=[]
 filtert=[]
 idx=-1
-for i in test_triple:
+for i in test2_triple:
 	filterh.append([])
 	filtert.append([])
 	idx+=1
@@ -101,12 +103,12 @@ for i in test_triple:
 
 	print(len(filterh[idx]),len(filtert[idx]))
 	print(idx)
-	with open("filterhFB15k.txt",'a+') as f:
+	with open("filterhFB15k1-1.txt",'a+') as f:
 		for i in filterh[idx]:
 			f.write(str(i)+' ')
 		f.write('\n')
 
-	with open("filtertFB15k.txt",'a+') as f:
+	with open("filtertFB15k1-1.txt",'a+') as f:
 		for i in filtert[idx]:
 			f.write(str(i)+' ')
 		f.write('\n')

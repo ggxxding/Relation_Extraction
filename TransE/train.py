@@ -5,8 +5,8 @@ import math
 import random
 import copy
 embed_dim=70
-n_batch=960
-margin=0.5
+n_batch=1440
+margin=0.7
 weight=0.1
 weight_diag=0.005
 lr1=0.01
@@ -15,8 +15,8 @@ lr=lr1
 regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
-is_train=1
-use_filter=1
+is_train=0
+use_filter=0
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -31,7 +31,7 @@ elif location=='mac':
 	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
 	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='666e70b1440m0.7WN18L2/'
+	checkpoint_dir='111e70b1440m0.7WN18L2 unif2/'
 
 model_name='modele'
 entity_id_map={}
@@ -179,9 +179,9 @@ rel_embedding =tf.get_variable("rel_embedding", [n_relation, embed_dim],
                                                    	maxval=bound,seed=348))'''
 trainable.append(rel_embedding)
 #trainable.append(rel_projecting)
-ent_bias_h=tf.get_variable("ent_bias_h",[n_entity,embed_dim],
+ent_bias=tf.get_variable("ent_bias",[n_entity,embed_dim],
 	initializer=tf.random_uniform_initializer(minval=-bound/5,maxval=bound/5,seed=347))
-trainable.append(ent_bias_h)
+trainable.append(ent_bias)
 '''ent_bias_t=tf.get_variable("ent_bias_t",[n_entity,embed_dim],
 	initializer=tf.random_uniform_initializer(minval=-bound/5,maxval=bound/5,seed=348))
 trainable.append(ent_bias_t)'''
@@ -198,9 +198,9 @@ tpn=tf.reshape(tf.norm(input_t_pos,axis=1,ord=2),[-1])
 input_r_pos=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_pos[:,2]),[-1,embed_dim,1])
 rpn=tf.reshape(tf.norm(input_r_pos,axis=1,ord=2),[-1])
 #rp_pos=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_pos[:,2]),[n_batch,embed_dim,-1])
-bias_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_pos[:,0]),[-1,embed_dim,1])
+bias_h_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_pos[:,0]),[-1,embed_dim,1])
 bhpn=tf.reshape(tf.norm(bias_h_pos,axis=1,ord=2),[-1])
-bias_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_pos[:,1]),[-1,embed_dim,1])
+bias_t_pos=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_pos[:,1]),[-1,embed_dim,1])
 btpn=tf.reshape(tf.norm(bias_t_pos,axis=1,ord=2),[-1])
 #shape =[batch,dim,1]
 #mrh_pos=tf.matmul(rp_pos,hp_pos,transpose_b=True)+tf.eye(embed_dim)
@@ -232,9 +232,9 @@ tnn=tf.reshape(tf.norm(input_t_neg,axis=1,ord=2),[-1])
 input_r_neg=tf.reshape(tf.nn.embedding_lookup(rel_embedding,train_input_neg[:,2]),[-1,embed_dim,1])
 rnn=tf.reshape(tf.norm(input_r_neg,axis=1,ord=2),[-1])
 #rp_neg=tf.reshape(tf.nn.embedding_lookup(rel_projecting,train_input_neg[:,2]),[n_batch,embed_dim,-1])
-bias_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_neg[:,0]),[-1,embed_dim,1])
+bias_h_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_neg[:,0]),[-1,embed_dim,1])
 bhnn=tf.reshape(tf.norm(bias_h_neg,axis=1,ord=2),[-1])
-bias_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias_h,train_input_neg[:,1]),[-1,embed_dim,1])
+bias_t_neg=tf.reshape(tf.nn.embedding_lookup(ent_bias,train_input_neg[:,1]),[-1,embed_dim,1])
 btnn=tf.reshape(tf.norm(bias_t_neg,axis=1,ord=2),[-1])
 #mrh_neg=tf.matmul(rp_neg,hp_neg,transpose_b=True)+tf.eye(embed_dim)
 #mrt_neg=tf.matmul(rp_neg,tp_neg,transpose_b=True)+tf.eye(embed_dim)
@@ -243,7 +243,7 @@ btnn=tf.reshape(tf.norm(bias_t_neg,axis=1,ord=2),[-1])
 
 eZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_embedding,0))
 rZeroNorm=tf.norm(tf.nn.embedding_lookup(rel_embedding,0))
-bhZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_bias_h,0))
+bhZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_bias,0))
 #btZeroNorm=tf.norm(tf.nn.embedding_lookup(ent_bias_t,0))
 
 score_hrt_neg1=tf.norm(input_h_neg+bias_h_neg+input_r_neg-bias_t_neg-input_t_neg,ord=2,axis=1)
@@ -282,12 +282,12 @@ idx_bh=tf.placeholder(tf.int32,[None])
 idx_bt=tf.placeholder(tf.int32,[None])
 normedE=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_embedding,idx_e),axis=1)
 normedR=tf.nn.l2_normalize(tf.nn.embedding_lookup(rel_embedding,idx_r),axis=1)
-normedBH=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias_h,idx_bh),axis=1)
-normedBT=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias_h,idx_bt),axis=1)
+normedBH=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias,idx_bh),axis=1)
+normedBT=tf.nn.l2_normalize(tf.nn.embedding_lookup(ent_bias,idx_bt),axis=1)
 updateE=tf.scatter_update(ent_embedding,idx_e,normedE)
 updateR=tf.scatter_update(rel_embedding,idx_r,normedR)
-updateBH=tf.scatter_update(ent_bias_h,idx_bh,normedBH)
-updateBT=tf.scatter_update(ent_bias_h,idx_bt,normedBT)
+updateBH=tf.scatter_update(ent_bias,idx_bh,normedBH)
+updateBT=tf.scatter_update(ent_bias,idx_bt,normedBT)
 
 saver=tf.train.Saver()
 
@@ -333,8 +333,8 @@ with tf.Session() as sess:
 				input_neg=[]
 
 				for idx in range(input_pos.shape[0]):
-					#if np.random.uniform(-1,1) > 0:
-					if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
+					if np.random.uniform(-1,1) > 0:
+					#if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
 						temp_ent=random.sample(entityID_list,1)[0]			
 
 						input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
