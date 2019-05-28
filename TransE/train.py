@@ -31,7 +31,7 @@ elif location=='mac':
 	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
 	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='111e70b1440m0.7WN18L2 unif2/'
+	checkpoint_dir='111e70b1440m0.7WN18L2 unif/'
 
 model_name='modele'
 entity_id_map={}
