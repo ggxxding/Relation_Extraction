@@ -16,6 +16,7 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 is_train=0
+#0 link prediction 1 train 2 triplet classification
 use_filter=0
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
@@ -506,3 +507,5 @@ with tf.Session() as sess:
 		print('hits10:',hits10)
 		print('meanrank:',mean_rank)
 		print("completed")
+	elif is_train==2:
+		print(valid_triple)
