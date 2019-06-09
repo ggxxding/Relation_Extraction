@@ -33,7 +33,7 @@ elif location=='mac':
 	train_path='../data/WN18/train2id.txt'
 	test_path='../data/WN18/test2id.txt'
 	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='11/'
+	checkpoint_dir='121/'
 
 model_name='modele'
 entity_id_map={}
@@ -334,9 +334,9 @@ with tf.Session() as sess:
 				loss_iter,_=sess.run([loss,op_train],\
 					{train_input_pos:input_pos,train_input_neg:input_neg})
 				loss_sum+=loss_iter
-				if n_iter>500:
+				if n_iter>5000:
 					break
-				if n_iter%100==0:
+				if n_iter%1000==0:
 					dur=time.perf_counter()
 					#print(n_iter,'/',total,' learning rate:',lr)
 					print(n_iter,'/',total)

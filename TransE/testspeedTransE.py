@@ -327,9 +327,9 @@ with tf.Session() as sess:
 				loss_iter,_=sess.run([loss,op_train],\
 					{train_input_pos:input_pos,train_input_neg:input_neg})
 				loss_sum+=loss_iter
-				if n_iter>500:
+				if n_iter>5000:
 					break
-				if n_iter%100==0:
+				if n_iter%1000==0:
 					dur=time.perf_counter()
 					#print(n_iter,'/',total,' learning rate:',lr)
 					print(n_iter,'/',total)

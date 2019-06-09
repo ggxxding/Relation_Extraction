@@ -4,9 +4,9 @@ import csv
 import math
 import random
 import copy
-embed_dim=70
-n_batch=1440
-margin=0.7
+embed_dim=350
+n_batch=960
+margin=0.1
 weight=0.1
 weight_diag=0.005
 lr1=0.01
@@ -15,7 +15,8 @@ lr=lr1
 regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
-is_train=0
+dataset='FB15k'
+is_train=2
 #0 link prediction 1 train 2 triplet classification
 use_filter=0
 #n_entity/n_relation/n_triple
@@ -29,10 +30,10 @@ elif location=='local':
 	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	train_path='../data/WN18/train2id.txt'
-	test_path='../data/WN18/test2id.txt'
-	valid_path='../data/WN18/valid2id.txt'
-	checkpoint_dir='111e70b1440m0.7WN18L2 unif/'
+	train_path='../data/'+dataset+'/train2id.txt'
+	test_path='../data/'+dataset+'/test2id.txt'
+	valid_path='../data/'+dataset+'/valid2id.txt'
+	checkpoint_dir='111e350b960m0.1FB15kL2unif/'
 
 model_name='modele'
 entity_id_map={}
@@ -44,7 +45,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'
 elif location=='mac':
-	dir='../data/WN18/entity2id.txt'
+	dir='../data/'+dataset+'/entity2id.txt'
 csv_file=csv.reader(open(dir))
 n_entity=0
 for lines in csv_file:
@@ -57,7 +58,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'
 elif location=='mac':
-	dir='../data/WN18/relation2id.txt'
+	dir='../data/'+dataset+'/relation2id.txt'
 csv_file=csv.reader(open(dir))
 n_relation=0
 for lines in csv_file:
@@ -115,11 +116,11 @@ def load_file(file_path):
 			else:
 				print('length:0')
 	return temp
-Ehr=load_file("../data/WN18/ehr.txt")
-Etr=load_file("../data/WN18/etr.txt")
+#Ehr=load_file("../data/WN18/ehr.txt")
+#Etr=load_file("../data/WN18/etr.txt")
 
-filterh=load_file("../filterhWN18.txt")
-filtert=load_file("../filtertWN18.txt")
+filterh=load_file('../filterh'+dataset+'.txt')
+filtert=load_file('../filtert'+dataset+'.txt')
 
 '''
 for i in range(n_relation):
@@ -292,6 +293,11 @@ updateBT=tf.scatter_update(ent_bias,idx_bt,normedBT)
 
 saver=tf.train.Saver()
 
+x = tf.placeholder("float",[None,1])
+y = tf.placeholder("float",[None,1])#1 ,-1
+W = tf.Variable(tf.zeros([1]))
+b = tf.Variable(tf.zeros([1]))
+actv=tf.sigmoid(x*W+b)
 
 
 # 启动图 (graph)
@@ -508,4 +514,42 @@ with tf.Session() as sess:
 		print('meanrank:',mean_rank)
 		print("completed")
 	elif is_train==2:
-		print(valid_triple)
+		def load_neg(file_path):
+			temp = []
+			with open(file_path, 'r', encoding='utf-8') as f_triple:
+				for x in f_triple.readlines():
+					if len(x.strip().split('\t')) == 4:
+						temp.append([x.strip().split('\t')[0],
+									 x.strip().split('\t')[1],
+									 x.strip().split('\t')[2],
+									 x.strip().split('\t')[3]])
+				return np.asarray(temp, dtype=np.int32)
+
+		valid_neg = load_neg('../data/FB15k/valid_neg.txt')
+
+		n_triple=valid_neg.shape[0]
+		print("valid triplets:%d"%(n_triple))
+		n_iter=0
+		ckpt=tf.train.get_checkpoint_state(checkpoint_dir)
+		if ckpt and ckpt.model_checkpoint_path:
+			print("success! %s."% ckpt.model_checkpoint_path)
+			saver.restore(sess,ckpt.model_checkpoint_path)
+		else:
+			print('fail to restore')
+		n_epoch=0
+		input_list=valid_neg[:,0:3]	#10000*3
+		input_flag=valid_neg[:,3]	#10000*1
+		input_flag=input_flag.reshape([-1,1])
+		rel=valid_neg[:,2].reshape([-1,1])
+		rel_start=[]
+		index=0
+
+
+		scores=sess.run(score_hrt_pos1,{train_input_pos:input_list})
+
+		# 10000*1
+		sess.run(init)
+		actvv=sess.run(actv,{x:scores,y:input_flag})
+		print(actvv)
+
+		print("completed")
