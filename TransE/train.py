@@ -4,7 +4,7 @@ import csv
 import math
 import random
 import copy
-embed_dim=350
+embed_dim=400
 n_batch=960
 margin=0.1
 weight=0.1
@@ -16,7 +16,7 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 dataset='FB15k'
-is_train=2
+is_train=1
 #0 link prediction 1 train 2 triplet classification
 use_filter=0
 #n_entity/n_relation/n_triple
@@ -33,7 +33,7 @@ elif location=='mac':
 	train_path='../data/'+dataset+'/train2id.txt'
 	test_path='../data/'+dataset+'/test2id.txt'
 	valid_path='../data/'+dataset+'/valid2id.txt'
-	checkpoint_dir='111e350b960m0.1FB15kL2unif/'
+	checkpoint_dir='111e400b960m0.1FB15kL2unif/'
 
 model_name='modele'
 entity_id_map={}
