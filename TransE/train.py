@@ -16,7 +16,7 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 dataset='FB15k'
-is_train=1
+is_train=0
 #0 link prediction 1 train 2 triplet classification
 use_filter=0
 #n_entity/n_relation/n_triple
@@ -340,8 +340,8 @@ with tf.Session() as sess:
 				input_neg=[]
 
 				for idx in range(input_pos.shape[0]):
-					if np.random.uniform(-1,1) > 0:
-					#if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
+					#if np.random.uniform(-1,1) > 0:
+					if np.random.uniform(0,1) > bern[input_pos[idx][2]][0]/(bern[input_pos[idx][2]][0]+bern[input_pos[idx][2]][1]):
 						temp_ent=random.sample(entityID_list,1)[0]			
 
 						input_neg.append([temp[idx][0],int(temp_ent),temp[idx][2]])
