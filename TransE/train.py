@@ -4,9 +4,13 @@ import csv
 import math
 import random
 import copy
-embed_dim=400
+#111e400b960m0.07FB15kL2bern/
+#'111e500b960m0.1FB15kL2bern/' 52.85
+
+#0.12
+embed_dim=500
 n_batch=960
-margin=0.1
+margin=0.18
 weight=0.1
 weight_diag=0.005
 lr1=0.01
@@ -33,7 +37,7 @@ elif location=='mac':
 	train_path='../data/'+dataset+'/train2id.txt'
 	test_path='../data/'+dataset+'/test2id.txt'
 	valid_path='../data/'+dataset+'/valid2id.txt'
-	checkpoint_dir='111e400b960m0.1FB15kL2bern/'
+	checkpoint_dir='0625e500b960m0.18FB15kL2bern/'
 
 model_name='modele'
 entity_id_map={}
