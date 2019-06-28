@@ -4,9 +4,14 @@ import csv
 import math
 import random
 import copy
-#111e400b960m0.07FB15kL2bern/
-#'111e500b960m0.1FB15kL2bern/' 52.85
-
+#111e500b960m0.12FB15kL2bern/' 53.2 203（0.18）
+#'111e500b960m0.15FB15kL2bern/  53.5 195
+#0625e500b960m0.18   FB15kL2bern/  53.727   192  78.42 89.492
+#0625e500b960m0.2   FB15kL2bern/  train 450000/500000 53.708 195
+#'0625e300b960m0.18FB15kL2bern/' 53、649	196
+#0626e350b960m0.18FB15kL2bern/  53.646  195
+#'0626e400b960m0.18FB15kL2bern/' 53.68  196
+#0625e500b960m0.18FB15kL2bern/'
 #0.12
 embed_dim=500
 n_batch=960
@@ -20,9 +25,9 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 dataset='FB15k'
-is_train=1
+is_train=0
 #0 link prediction 1 train 2 triplet classification
-use_filter=0
+use_filter=1
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
