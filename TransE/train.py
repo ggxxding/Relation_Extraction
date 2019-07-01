@@ -6,16 +6,17 @@ import random
 import copy
 #111e500b960m0.12FB15kL2bern/' 53.2 203（0.18）
 #'111e500b960m0.15FB15kL2bern/  53.5 195
-#0625e500b960m0.18   FB15kL2bern/  53.727   192  78.42 89.492
+#0625e500b960m0.18   FB15kL2bern/  53.727   192  78.42 89.492 #### h n-n 79.514 t n-n 82.825 1-1 83.6879
 #0625e500b960m0.2   FB15kL2bern/  train 450000/500000 53.708 195
 #'0625e300b960m0.18FB15kL2bern/' 53、649	196
 #0626e350b960m0.18FB15kL2bern/  53.646  195
 #'0626e400b960m0.18FB15kL2bern/' 53.68  196
 #0625e500b960m0.18FB15kL2bern/'
+#0629e500b960m0.18FB15kL2unif/   filter 78.1 78.1
 #0.12
 embed_dim=500
 n_batch=960
-margin=0.18
+margin=0.19
 weight=0.1
 weight_diag=0.005
 lr1=0.01
@@ -25,9 +26,9 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 dataset='FB15k'
-is_train=0
+is_train=1
 #0 link prediction 1 train 2 triplet classification
-use_filter=1
+use_filter=0
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -42,7 +43,7 @@ elif location=='mac':
 	train_path='../data/'+dataset+'/train2id.txt'
 	test_path='../data/'+dataset+'/test2id.txt'
 	valid_path='../data/'+dataset+'/valid2id.txt'
-	checkpoint_dir='0625e500b960m0.18FB15kL2bern/'
+	checkpoint_dir='0630e500b960m0.19FB15kL2bern/'
 
 model_name='modele'
 entity_id_map={}
@@ -420,7 +421,7 @@ with tf.Session() as sess:
 				if rz>1:
 					norm_rlist.append(0)
 				if bhz>1:
-					norm_bhlist.appen(0)
+					norm_bhlist.append(0)
 				'''if btz>1:
 					norm_btlist.append(0)'''
 
