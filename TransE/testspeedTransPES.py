@@ -6,7 +6,7 @@ import random
 import copy
 
 import time
-embed_dim=70
+embed_dim=200
 n_batch=1440
 margin=0.7
 weight=0.1
@@ -31,9 +31,9 @@ elif location=='local':
 	train_path='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/train.txt'
 	checkpoint_dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/saver/'
 elif location=='mac':
-	train_path='../data/WN18/train2id.txt'
-	test_path='../data/WN18/test2id.txt'
-	valid_path='../data/WN18/valid2id.txt'
+	train_path='../data/FB15k/train2id.txt'
+	test_path='../data/FB15k/test2id.txt'
+	valid_path='../data/FB15k/valid2id.txt'
 	checkpoint_dir='111/'
 
 model_name='modele'
@@ -46,7 +46,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/entity2id.txt'
 elif location=='mac':
-	dir='../data/WN18/entity2id.txt'
+	dir='../data/FB15k/entity2id.txt'
 csv_file=csv.reader(open(dir))
 n_entity=0
 for lines in csv_file:
@@ -59,7 +59,7 @@ if location=='104':
 elif location=='local':
 	dir='/media/ggxxding/documents/GitHub/ggxxding/Relation_Extraction/data/WN18/relation2id.txt'
 elif location=='mac':
-	dir='../data/WN18/relation2id.txt'
+	dir='../data/FB15k/relation2id.txt'
 csv_file=csv.reader(open(dir))
 n_relation=0
 for lines in csv_file:
