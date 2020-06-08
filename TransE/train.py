@@ -16,7 +16,7 @@ import copy
 #0.12
 embed_dim=500
 n_batch=960
-margin=0.19
+margin=0.15
 weight=0.1
 weight_diag=0.005
 lr1=0.01
@@ -26,9 +26,9 @@ regularizer_weight=0
 num_epoch=500 #500 0.01 + 500 0.0001
 location='mac'
 dataset='FB15k'
-is_train=1
+is_train=0
 #0 link prediction 1 train 2 triplet classification
-use_filter=0
+use_filter=1
 #n_entity/n_relation/n_triple
 #dict_type:  str:str
 #train/test_triple_type: [[int32,int32,int32]...]
@@ -43,7 +43,7 @@ elif location=='mac':
 	train_path='../data/'+dataset+'/train2id.txt'
 	test_path='../data/'+dataset+'/test2id.txt'
 	valid_path='../data/'+dataset+'/valid2id.txt'
-	checkpoint_dir='0630e500b960m0.19FB15kL2bern/'
+	checkpoint_dir='111e500b960m0.15FB15kL2bern/'
 
 model_name='modele'
 entity_id_map={}
@@ -474,6 +474,7 @@ with tf.Session() as sess:
 						input_list.append([idx,input_pos[0][1],input_pos[0][2]])
 
 				scores=sess.run(score_hrt_pos1,{train_input_pos:input_list})
+
 				scores=scores.reshape(-1).tolist()
 				#index=temp_idx
 				temp=scores[index]

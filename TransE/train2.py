@@ -13,7 +13,7 @@ import copy
 #'0626e400b960m0.18FB15kL2bern/' 53.68  196
 #0625e500b960m0.18FB15kL2bern/'
 #0.12
-embed_dim=500
+embed_dim=700
 n_batch=960
 margin=0.19
 weight=0.1
@@ -59,7 +59,7 @@ elif location=='mac':
 	train_path='../data/'+dataset+'/train2id.txt'
 	#test_path='../data/'+dataset+'/1-1.txt'
 	valid_path='../data/'+dataset+'/valid2id.txt'
-	checkpoint_dir='111e500b960m0.15FB15kL2bern/'
+	checkpoint_dir='0714e700b960m0.19FB15kL2bern/'
 
 model_name='modele'
 entity_id_map={}
